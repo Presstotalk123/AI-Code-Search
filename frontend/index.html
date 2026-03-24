@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Coding Tools Opinion Search</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🤖 AI Coding Tools Opinion Search</h1>
+            <p>Search Reddit opinions on Cursor, Copilot, Claude Code, Windsurf & more</p>
+        </header>
+
+        <!-- Search Section -->
+        <section class="search-section">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search for opinions (e.g., 'cursor vs copilot productivity')">
+                <button id="searchButton">Search</button>
+            </div>
+
+            <!-- Mode Toggle -->
+            <div class="mode-toggle">
+                <span class="mode-label">Search Mode:</span>
+                <label class="mode-option">
+                    <input type="radio" name="mode" value="keyword">
+                    <span>Keyword</span>
+                </label>
+                <label class="mode-option">
+                    <input type="radio" name="mode" value="semantic">
+                    <span>Semantic</span>
+                </label>
+                <label class="mode-option">
+                    <input type="radio" name="mode" value="hybrid" checked>
+                    <span>Hybrid ⚡</span>
+                </label>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Tool:</label>
+                    <select id="toolFilter">
+                        <option value="">All Tools</option>
+                        <option value="cursor">Cursor</option>
+                        <option value="copilot">Copilot</option>
+                        <option value="claude_code">Claude Code</option>
+                        <option value="windsurf">Windsurf</option>
+                        <option value="general">General</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Sentiment:</label>
+                    <select id="sentimentFilter">
+                        <option value="">All</option>
+                        <option value="positive">Positive</option>
+                        <option value="negative">Negative</option>
+                        <option value="mixed">Mixed</option>
+                        <option value="not_applicable">Neutral</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Date From:</label>
+                    <input type="date" id="dateFrom">
+                </div>
+
+                <div class="filter-group">
+                    <label>Date To:</label>
+                    <input type="date" id="dateTo">
+                </div>
+
+                <button id="clearFilters" class="clear-button">Clear Filters</button>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section class="results-section">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <h3>Facets</h3>
+
+                <div class="facet-group">
+                    <h4>Tools Mentioned</h4>
+                    <div id="toolFacets" class="facet-list"></div>
+                </div>
+
+                <div class="facet-group">
+                    <h4>Sentiment Distribution</h4>
+                    <canvas id="sentimentChart"></canvas>
+                </div>
+
+                <div class="facet-group">
+                    <h4>Top Subreddits</h4>
+                    <div id="subredditFacets" class="facet-list"></div>
+                </div>
+            </aside>
+
+            <!-- Main Results -->
+            <div class="main-results">
+                <!-- Results Header -->
+                <div class="results-header">
+                    <span id="resultsCount" class="results-count"></span>
+                    <span id="queryTime" class="query-time"></span>
+                </div>
+
+                <!-- Results Container -->
+                <div id="resultsContainer" class="results-container">
+                    <!-- Initial message -->
+                    <div class="welcome-message">
+                        <h2>Welcome to AI Coding Tools Opinion Search! 👋</h2>
+                        <p>Search through thousands of Reddit opinions about AI coding tools.</p>
+                        <p>Try searching for:</p>
+                        <ul>
+                            <li>"cursor vs copilot"</li>
+                            <li>"productivity with windsurf"</li>
+                            <li>"claude code performance"</li>
+                            <li>"autocomplete speed issues"</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="paginationContainer" style="display: none;">
+                    <button id="prevPage" class="page-button">← Previous</button>
+                    <span id="pageInfo" class="page-info"></span>
+                    <button id="nextPage" class="page-button">Next →</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <p>Built with Apache Solr + ChromaDB + RRF Hybrid Search</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/search.js"></script>
+    <script src="js/filters.js"></script>
+    <script src="js/visualization.js"></script>
+</body>
+</html>

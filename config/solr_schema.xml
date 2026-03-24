@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<schema name="ai-tools-opinions" version="1.6">
+  <!-- Field Types -->
+  <fieldType name="text_en" class="solr.TextField" positionIncrementGap="100">
+    <analyzer type="index">
+      <tokenizer class="solr.StandardTokenizerFactory"/>
+      <filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt"/>
+      <filter class="solr.LowerCaseFilterFactory"/>
+      <filter class="solr.EnglishPossessiveFilterFactory"/>
+      <filter class="solr.PorterStemFilterFactory"/>
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer class="solr.StandardTokenizerFactory"/>
+      <filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt"/>
+      <filter class="solr.LowerCaseFilterFactory"/>
+      <filter class="solr.EnglishPossessiveFilterFactory"/>
+      <filter class="solr.PorterStemFilterFactory"/>
+    </analyzer>
+  </fieldType>
+
+  <fieldType name="string" class="solr.StrField" sortMissingLast="true"/>
+  <fieldType name="pdate" class="solr.DatePointField" docValues="true"/>
+  <fieldType name="pint" class="solr.IntPointField" docValues="true"/>
+
+  <!-- Fields -->
+  <field name="doc_id" type="string" indexed="true" stored="true" required="true"/>
+  <field name="title" type="text_en" indexed="true" stored="true"/>
+  <field name="text" type="text_en" indexed="true" stored="true"/>
+  <field name="combined_content" type="text_en" indexed="true" stored="false"/>
+
+  <field name="source" type="string" indexed="true" stored="true" docValues="true"/>
+  <field name="url" type="string" indexed="false" stored="true"/>
+  <field name="content_type" type="string" indexed="true" stored="true" docValues="true"/>
+
+  <field name="tool_mentioned" type="string" indexed="true" stored="true" multiValued="true" docValues="true"/>
+  <field name="sentiment_label" type="string" indexed="true" stored="true" docValues="true"/>
+  <field name="subjectivity" type="string" indexed="true" stored="true" docValues="true"/>
+  <field name="aspects" type="string" indexed="true" stored="true" multiValued="true" docValues="true"/>
+  <field name="sarcasm" type="string" indexed="true" stored="true" docValues="true"/>
+
+  <field name="subreddit" type="string" indexed="true" stored="true" docValues="true"/>
+  <field name="author" type="string" indexed="true" stored="true"/>
+  <field name="date" type="pdate" indexed="true" stored="true" docValues="true"/>
+
+  <field name="upvotes" type="pint" indexed="true" stored="true"/>
+  <field name="num_replies" type="pint" indexed="false" stored="true"/>
+
+  <!-- Unique Key -->
+  <uniqueKey>doc_id</uniqueKey>
+
+  <!-- Copy Fields for comprehensive search -->
+  <copyField source="title" dest="combined_content"/>
+  <copyField source="text" dest="combined_content"/>
+</schema>

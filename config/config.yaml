@@ -1,0 +1,53 @@
+# Server Configuration
+server:
+  host: "0.0.0.0"
+  port: 5000
+  debug: false
+
+# Solr Configuration
+solr:
+  url: "http://localhost:8983/solr"
+  collection: "ai_tools_opinions"
+  timeout: 30
+  batch_size: 100
+
+# ChromaDB Configuration
+chromadb:
+  persist_directory: "./chroma_db"
+  collection_name: "ai_tools_embeddings"
+  distance_metric: "cosine"
+
+# Embeddings Configuration
+embeddings:
+  model_name: "sentence-transformers/all-MiniLM-L6-v2"
+  # Alternative: "sentence-transformers/all-mpnet-base-v2" (better quality, slower)
+  max_seq_length: 512
+  batch_size: 32
+  device: "cpu"  # or "cuda" if GPU available
+
+# Search Configuration
+search:
+  rrf_k: 60
+  default_page_size: 10
+  max_page_size: 100
+  solr_rows: 100  # Fetch top N from Solr for RRF
+  chroma_n_results: 100  # Fetch top N from Chroma for RRF
+
+  # Sentiment boosting multipliers
+  sentiment_boost:
+    enabled: true
+    positive: 1.2
+    negative: 0.8
+    mixed: 1.0
+    not_applicable: 1.0
+
+# Data Configuration
+data:
+  source_path: "./data/eval_final.jsonl"
+  date_format: "%Y-%m-%dT%H:%M:%SZ"
+
+# Logging
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "./logs/app.log"
