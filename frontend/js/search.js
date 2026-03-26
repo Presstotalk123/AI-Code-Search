@@ -56,6 +56,9 @@ class SearchManager {
 
         if (data.total_count === 0) {
             container.innerHTML = '<p class="no-results">No results found. Try different keywords or filters.</p>';
+            if (window.clearWordCloud) {
+                window.clearWordCloud('No data available for a word cloud.');
+            }
             return;
         }
 
@@ -82,6 +85,13 @@ class SearchManager {
         // Update sentiment chart
         if (window.visualizationManager) {
             window.visualizationManager.updateSentimentChart(data.facets.sentiment);
+        }
+
+        if (window.loadWordCloud) {
+            window.loadWordCloud(this.currentQuery, {
+                mode: this.currentMode,
+                filters: this.currentFilters
+            });
         }
     }
 
@@ -191,6 +201,10 @@ class SearchManager {
                 <p style="color: #f44336;">❌ ${this.escapeHtml(message)}</p>
             </div>
         `;
+
+        if (window.clearWordCloud) {
+            window.clearWordCloud('Unable to generate word cloud for this search.');
+        }
     }
 }
 
