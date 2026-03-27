@@ -60,7 +60,7 @@ class SearchEngine:
                 **{
                     'rows': rows,
                     'defType': 'edismax',  # Extended DisMax query parser
-                    'qf': 'title^2 text combined_content',  # Query fields (boost title 2x)
+                    'qf': 'title^2 text',  # Query fields (boost title 2x)
                     'fl': '*,score'  # Return all fields + relevance score
                 }
             )
