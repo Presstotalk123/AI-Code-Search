@@ -1,6 +1,6 @@
 // Search Manager - Main search logic
 class SearchManager {
-    constructor(apiBaseUrl = '/api') {
+    constructor(apiBaseUrl = 'http://localhost:5000/api') {
         this.apiBaseUrl = apiBaseUrl;
         this.currentPage = 1;
         this.pageSize = 10;
@@ -112,12 +112,21 @@ class SearchManager {
                         result.tools.join(', ') :
                         result.tools;
 
-        // Aspects display
+        // Aspects display with polarity
         const aspectsHtml = result.aspects && result.aspects.length > 0 ?
             `<div class="aspects">
-                ${result.aspects.map(aspect =>
-                    `<span class="aspect-tag">${aspect}</span>`
-                ).join('')}
+                ${result.aspects.map(aspect => {
+                    if (aspect.polarity) {
+                        // New format with polarity
+                        const polarityClass = `aspect-${aspect.polarity}`;
+                        return `<span class="aspect-tag ${polarityClass}" title="${aspect.name}: ${aspect.polarity}">
+                            ${aspect.name} <span class="polarity-badge">${aspect.polarity}</span>
+                        </span>`;
+                    } else {
+                        // Old format without polarity (backward compatibility)
+                        return `<span class="aspect-tag">${aspect.name}</span>`;
+                    }
+                }).join('')}
             </div>` : '';
 
         card.innerHTML = `

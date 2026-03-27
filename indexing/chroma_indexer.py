@@ -37,6 +37,24 @@ class ChromaIndexer:
 
         logger.info(f"Collection '{collection_name}' ready (current count: {self.collection.count()})")
 
+    def _transform_aspects(self, aspects) -> str:
+        """Transform aspects to comma-separated aspect:polarity format.
+        Handles both old (list) and new (dict) formats."""
+        if not aspects:
+            return ''
+
+        # New format: dict mapping aspect to polarity
+        if isinstance(aspects, dict):
+            return ','.join([f"{aspect}:{polarity}" for aspect, polarity in aspects.items()])
+
+        # Old format: simple list
+        if isinstance(aspects, list):
+            return ','.join(aspects)
+
+        # Fallback
+        logger.warning(f"Unexpected aspects type: {type(aspects)}")
+        return ''
+
     def index_record(self, record: Dict, embedding_text: str):
         """
         Index single record with embedding
@@ -53,7 +71,7 @@ class ChromaIndexer:
             'tools': ','.join(record['labels']['agents']),
             'date': record['timestamps']['created_at'],
             'subreddit': record['platform_context']['subreddit'],
-            'aspects': ','.join(record['labels']['aspects']),
+            'aspects': self._transform_aspects(record['labels']['aspects']),
             'content_type': record['content_type'],
             'title': record['content'].get('thread_title', '')
         }
@@ -122,7 +140,7 @@ class ChromaIndexer:
                     'tools': ','.join(record.get('labels', {}).get('agents', [])),
                     'date': record.get('timestamps', {}).get('created_at', ''),
                     'subreddit': record.get('platform_context', {}).get('subreddit', ''),
-                    'aspects': ','.join(record.get('labels', {}).get('aspects', [])),
+                    'aspects': self._transform_aspects(record.get('labels', {}).get('aspects', [])),
                     'content_type': record.get('content_type', 'post'),
                     'title': record.get('content', {}).get('thread_title', '')
                 }

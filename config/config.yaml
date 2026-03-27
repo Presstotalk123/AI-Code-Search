@@ -43,7 +43,7 @@ search:
 
 # Data Configuration
 data:
-  source_path: "./data/eval_final.jsonl"
+  source_path: "./data/eval_final_labelled.jsonl"
   date_format: "%Y-%m-%dT%H:%M:%SZ"
 
 # Logging

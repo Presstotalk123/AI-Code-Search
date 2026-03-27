@@ -403,6 +403,50 @@ header p {
     font-weight: 500;
 }
 
+/* Aspect Polarity Styles */
+.aspect-tag.aspect-positive {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+}
+
+.aspect-tag.aspect-negative {
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid #ef9a9a;
+}
+
+.aspect-tag.aspect-neutral {
+    background: #fff8e1;
+    color: #f57f17;
+    border: 1px solid #ffeb3b;
+}
+
+.aspect-tag .polarity-badge {
+    font-size: 0.75em;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-left: 4px;
+    padding: 1px 4px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.aspect-tag.aspect-positive .polarity-badge {
+    background: #4caf50;
+    color: white;
+}
+
+.aspect-tag.aspect-negative .polarity-badge {
+    background: #f44336;
+    color: white;
+}
+
+.aspect-tag.aspect-neutral .polarity-badge {
+    background: #ff9800;
+    color: white;
+}
+
 /* Pagination */
 .pagination {
     display: flex;

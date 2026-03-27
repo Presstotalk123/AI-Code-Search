@@ -25,6 +25,24 @@ class SolrIndexer:
 
         logger.info(f"Initialized Solr indexer for {solr_url}/{collection_name}")
 
+    def _transform_aspects(self, aspects) -> List[str]:
+        """Transform aspects to aspect:polarity format.
+        Handles both old (list) and new (dict) formats for backward compatibility."""
+        if not aspects:
+            return []
+
+        # New format: dict mapping aspect to polarity
+        if isinstance(aspects, dict):
+            return [f"{aspect}:{polarity}" for aspect, polarity in aspects.items()]
+
+        # Old format: simple list - keep as-is
+        if isinstance(aspects, list):
+            return aspects
+
+        # Fallback for unexpected types
+        logger.warning(f"Unexpected aspects type: {type(aspects)}")
+        return []
+
     def transform_record(self, record: Dict) -> Dict:
         """
         Transform JSONL record to Solr document
@@ -45,7 +63,7 @@ class SolrIndexer:
             'tool_mentioned': record['labels']['agents'],
             'sentiment_label': record['labels']['polarity'],
             'subjectivity': record['labels']['subjectivity'],
-            'aspects': record['labels']['aspects'],
+            'aspects': self._transform_aspects(record['labels']['aspects']),
             'sarcasm': record['labels']['sarcasm'],
             'subreddit': record['platform_context']['subreddit'],
             'author': record['author']['username'],

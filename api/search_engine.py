@@ -316,10 +316,28 @@ class SearchEngine:
             tools = tools.split(',')
         tools = [t.strip() for t in tools if t.strip()]
 
-        aspects = metadata.get('aspects', [])
-        if isinstance(aspects, str):
-            aspects = aspects.split(',')
-        aspects = [a.strip() for a in aspects if a.strip()]
+        # Parse aspects with polarity
+        aspects_raw = metadata.get('aspects', [])
+        if isinstance(aspects_raw, str):
+            aspects_raw = aspects_raw.split(',')
+        aspects_raw = [a.strip() for a in aspects_raw if a.strip()]
+
+        # Parse aspect:polarity format
+        aspects_parsed = []
+        for aspect_str in aspects_raw:
+            if ':' in aspect_str:
+                # New format: "aspect:polarity"
+                parts = aspect_str.split(':', 1)
+                aspects_parsed.append({
+                    'name': parts[0],
+                    'polarity': parts[1]
+                })
+            else:
+                # Old format: just "aspect"
+                aspects_parsed.append({
+                    'name': aspect_str,
+                    'polarity': None
+                })
 
         return {
             'doc_id': doc_id,
@@ -331,7 +349,7 @@ class SearchEngine:
             'date': metadata.get('date', ''),
             'sentiment': metadata.get('sentiment_label', metadata.get('sentiment', 'not_applicable')),
             'tools': tools,
-            'aspects': aspects,
+            'aspects': aspects_parsed,
             'subreddit': metadata.get('subreddit', ''),
             'upvotes': metadata.get('upvotes', 0),
             'content_type': metadata.get('content_type', 'post')
