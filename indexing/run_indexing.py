@@ -1,4 +1,4 @@
-"""Main indexing script - orchestrates Solr and ChromaDB indexing"""
+"""Main indexing script - single Solr pipeline with BM25 fields + vector embeddings"""
 import logging
 import yaml
 import sys
@@ -11,7 +11,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from indexing.data_loader import load_jsonl
 from indexing.embeddings import EmbeddingModel
 from indexing.solr_indexer import SolrIndexer
-from indexing.chroma_indexer import ChromaIndexer
 
 # Configure logging
 logging.basicConfig(
@@ -36,33 +35,26 @@ def main():
         config = load_config()
         logger.info("Configuration loaded successfully")
 
-        # Initialize embedding model
+        # Initialize embedding model (used by SolrIndexer for vector field)
         logger.info("Initializing embedding model (this may take a minute on first run)...")
         embedding_model = EmbeddingModel(
             model_name=config['embeddings']['model_name'],
             device=config['embeddings']['device']
         )
 
-        # Initialize Solr indexer
-        logger.info("Initializing Solr indexer...")
+        # Initialize Solr indexer with embedding model
+        logger.info("Initializing Solr indexer (with vector support)...")
         solr_indexer = SolrIndexer(
             solr_url=config['solr']['url'],
             collection_name=config['solr']['collection'],
-            timeout=config['solr']['timeout']
+            timeout=config['solr']['timeout'],
+            embedding_model=embedding_model
         )
 
         # Check Solr connectivity
         if not solr_indexer.ping():
             logger.error("Cannot connect to Solr. Make sure Solr is running (docker-compose up -d)")
             sys.exit(1)
-
-        # Initialize ChromaDB indexer
-        logger.info("Initializing ChromaDB indexer...")
-        chroma_indexer = ChromaIndexer(
-            persist_directory=config['chromadb']['persist_directory'],
-            collection_name=config['chromadb']['collection_name'],
-            embedding_model=embedding_model
-        )
 
         # Load data
         data_path = config['data']['source_path']
@@ -82,8 +74,8 @@ def main():
         # Ask user confirmation before indexing
         print(f"\n{'='*60}")
         print(f"Ready to index {len(records)} records")
-        print(f"  Solr: {config['solr']['url']}/{config['solr']['collection']}")
-        print(f"  ChromaDB: {config['chromadb']['persist_directory']}")
+        print(f"  Solr (BM25 + vectors): {config['solr']['url']}/{config['solr']['collection']}")
+        print(f"  Embedding model: {config['embeddings']['model_name']}")
         print(f"{'='*60}\n")
 
         response = input("Proceed with indexing? (yes/no): ").strip().lower()
@@ -91,35 +83,24 @@ def main():
             logger.info("Indexing cancelled by user")
             sys.exit(0)
 
-        # Index to Solr
+        # Index to Solr with BM25 fields + vector embeddings
         logger.info("=" * 60)
-        logger.info("PHASE 1: Indexing to Solr")
+        logger.info("Indexing to Solr with BM25 fields + vector embeddings")
         logger.info("=" * 60)
         solr_indexer.batch_index(
             records,
-            batch_size=config['solr']['batch_size']
-        )
-
-        # Index to ChromaDB
-        logger.info("=" * 60)
-        logger.info("PHASE 2: Indexing to ChromaDB (with embeddings)")
-        logger.info("=" * 60)
-        chroma_indexer.batch_index(
-            records,
-            batch_size=config['embeddings']['batch_size']
+            batch_size=config['embeddings']['batch_size']  # 32 - matches embedding batch size
         )
 
         # Summary
         logger.info("=" * 60)
         logger.info("INDEXING COMPLETE")
         logger.info("=" * 60)
-        logger.info(f"✓ Indexed {len(records)} records to Solr")
-        logger.info(f"✓ Indexed {chroma_indexer.get_count()} records to ChromaDB")
-        logger.info(f"✓ Solr collection: {config['solr']['url']}/{config['solr']['collection']}")
-        logger.info(f"✓ ChromaDB path: {config['chromadb']['persist_directory']}")
+        logger.info(f"Indexed {len(records)} records to Solr")
+        logger.info(f"Solr collection: {config['solr']['url']}/{config['solr']['collection']}")
         logger.info("=" * 60)
 
-        print("\n✅ Indexing completed successfully!")
+        print("\nIndexing completed successfully!")
         print("\nNext steps:")
         print("  1. Start the Flask API: python api/app.py")
         print("  2. Open http://localhost:5000 in your browser")

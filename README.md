@@ -1,10 +1,10 @@
 # AI Coding Tools Opinion Search Engine 🤖
 
-A hybrid search engine for exploring Reddit opinions about AI coding tools (Cursor, Copilot, Claude Code, Windsurf, etc.) using **Apache Solr** (BM25 keyword search) + **ChromaDB** (semantic vector search) with **Reciprocal Rank Fusion (RRF)**.
+A hybrid search engine for exploring Reddit opinions about AI coding tools (Cursor, Copilot, Claude Code, Windsurf, etc.) using **Apache Solr 10** for both BM25 keyword search and HNSW vector search, with **Reciprocal Rank Fusion (RRF)**.
 
 ## Features ✨
 
-- **🔍 Hybrid Search**: Combines keyword precision (Solr BM25) with semantic understanding (ChromaDB embeddings)
+- **🔍 Hybrid Search**: Combines keyword precision (Solr BM25) with semantic understanding (Solr HNSW vector search)
 - **⚡ Fast Queries**: 150-250ms average latency with parallel query execution
 - **📊 Sentiment Analysis**: Filter and boost by sentiment (positive, negative, mixed, neutral)
 - **🏷️ Aspect-Based Filtering**: Search by aspects (productivity, cost, trust, integration, etc.)
@@ -15,19 +15,19 @@ A hybrid search engine for exploring Reddit opinions about AI coding tools (Curs
 ## Architecture
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  JSONL Dataset  │────▶│  Indexing Layer  │────▶│  Dual Indexes   │
-│   (10k+ posts)  │     │  - Data Loader   │     │  - Solr (BM25)  │
-└─────────────────┘     │  - Embeddings    │     │  - Chroma (768d)│
-                        └──────────────────┘     └────────┬────────┘
-                                                           │
-                                                           ▼
-                        ┌──────────────────┐     ┌─────────────────┐
-                        │  Flask REST API  │◀────│  Search Engine  │
-                        │  /api/search     │     │  - RRF Fusion   │
-                        │  /api/stats      │     │  - Filters      │
-                        └────────┬─────────┘     └─────────────────┘
-                                 │
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────────┐
+│  JSONL Dataset  │────▶│  Indexing Layer  │────▶│  Solr 10 Collection │
+│   (887 posts)   │     │  - Data Loader   │     │  - BM25 fields      │
+└─────────────────┘     │  - Embeddings    │     │  - HNSW vector field│
+                        └──────────────────┘     └──────────┬──────────┘
+                                                             │
+                                                             ▼
+                        ┌──────────────────┐     ┌─────────────────────┐
+                        │  Flask REST API  │◀────│  Search Engine      │
+                        │  /api/search     │     │  - Solr BM25        │
+                        │  /api/stats      │     │  - Solr KNN (HNSW)  │
+                        └────────┬─────────┘     │  - RRF Fusion       │
+                                 │               └─────────────────────┘
                                  ▼
                         ┌──────────────────┐
                         │  Frontend UI     │
@@ -40,7 +40,7 @@ A hybrid search engine for exploring Reddit opinions about AI coding tools (Curs
 ## Tech Stack
 
 - **Backend**: Flask 3.0 (Python 3.9+)
-- **Search Engines**: Apache Solr 9.4 + ChromaDB 0.4.22
+- **Search Engine**: Apache Solr 10 (BM25 + HNSW `DenseVectorField`)
 - **Embeddings**: sentence-transformers/all-MiniLM-L6-v2 (384 dimensions)
 - **Frontend**: Vanilla JavaScript + Chart.js
 - **Infrastructure**: Docker Compose for Solr
@@ -63,30 +63,34 @@ A hybrid search engine for exploring Reddit opinions about AI coding tools (Curs
    pip install -r requirements.txt
    ```
 
-3. **Start Solr**
+3. **Start Solr 10**
    ```bash
    docker-compose up -d
    ```
 
    Verify Solr is running: http://localhost:8983/solr
 
-4. **Index the dataset**
+4. **Apply Solr schema** (adds BM25 fields + HNSW vector field)
+   ```bash
+   python config/configure_solr_schema.py
+   ```
+
+5. **Index the dataset**
    ```bash
    python indexing/run_indexing.py
    ```
 
    This will:
    - Download the sentence-transformers model (~80MB, first run only)
-   - Index documents to Solr (keyword search)
-   - Generate embeddings and index to ChromaDB (semantic search)
-   - Take ~2-3 minutes for 10,000 records
+   - Index documents to Solr with BM25 fields + 384-dim vector embeddings
+   - Take ~2-4 minutes on CPU
 
-5. **Start the Flask API**
+6. **Start the Flask API**
    ```bash
    python api/app.py
    ```
 
-6. **Open the application**
+7. **Open the application**
 
    Navigate to http://localhost:5000
 
@@ -97,7 +101,7 @@ A hybrid search engine for exploring Reddit opinions about AI coding tools (Curs
 1. **Search**: Enter a query like "cursor vs copilot productivity"
 2. **Choose Mode**:
    - **Keyword**: Pure BM25 (fast, exact matches)
-   - **Semantic**: Pure vector search (understands meaning)
+   - **Semantic**: Pure HNSW vector search (understands meaning)
    - **Hybrid**: RRF fusion (recommended)
 3. **Apply Filters**:
    - Tool (cursor, copilot, claude_code, windsurf)
@@ -160,7 +164,7 @@ GET /api/search?q=cursor%20productivity&mode=hybrid&sentiment=positive&tools=cur
 #### Other Endpoints
 
 - `GET /api/stats` - Dataset statistics
-- `GET /api/health` - Health check (Solr + ChromaDB)
+- `GET /api/health` - Health check (Solr BM25 + Solr vector)
 - `GET /api/document/<doc_id>` - Get full document by ID
 
 ## Configuration
@@ -172,8 +176,8 @@ Edit `config/config.yaml` to customize:
 ```yaml
 search:
   rrf_k: 60  # RRF constant (lower = more weight to top results)
-  solr_rows: 100  # Top N from Solr for RRF
-  chroma_n_results: 100  # Top N from Chroma for RRF
+  solr_rows: 100       # Top N from Solr BM25 for RRF
+  vector_n_results: 100  # Top N from Solr KNN for RRF
 
   sentiment_boost:
     enabled: true
@@ -196,19 +200,35 @@ embeddings:
 
 ### Reciprocal Rank Fusion (RRF)
 
-RRF merges results from Solr and ChromaDB without requiring score normalization:
+RRF merges results from Solr BM25 and Solr KNN without requiring score normalization:
 
 ```
-rrf_score(doc) = 1/(k + solr_rank) + 1/(k + chroma_rank)
+rrf_score(doc) = 1/(k + solr_rank) + 1/(k + vector_rank)
 ```
 
 Where `k=60` (empirically validated in IR research).
 
 **Example:**
-- Doc A: Solr rank=1, Chroma rank=5 → RRF = 1/61 + 1/65 = 0.0318
-- Doc B: Solr rank=3, Chroma rank=2 → RRF = 1/63 + 1/62 = 0.0320
+- Doc A: Solr rank=1, Vector rank=5 → RRF = 1/61 + 1/65 = 0.0318
+- Doc B: Solr rank=3, Vector rank=2 → RRF = 1/63 + 1/62 = 0.0320
 
 Doc B ranks higher (balanced performance across both systems).
+
+### Solr 10 HNSW Vector Search
+
+Each document is indexed with a 384-dimensional embedding in Solr's `DenseVectorField`:
+
+```
+vectorDimension=384, similarityFunction=cosine
+```
+
+At query time, the search query is embedded and sent as a KNN query:
+
+```
+{!knn f=vector topK=100}[0.1, 0.2, ...]
+```
+
+Solr returns the top-K nearest neighbours by cosine similarity using its built-in HNSW graph index.
 
 ### Sentiment-Aware Ranking
 
@@ -225,11 +245,11 @@ Configurable in `config.yaml`.
 Post-fusion filtering and faceting ensures:
 - Consistent behavior across keyword/semantic/hybrid modes
 - Accurate facet counts on actual result set
-- Fast for 10k records (in-memory computation)
+- Fast for 887 records (in-memory computation)
 
 ## Performance
 
-### Query Latency (10,000 records)
+### Query Latency
 
 - **Keyword**: 50-100ms
 - **Semantic**: 80-150ms
@@ -237,15 +257,12 @@ Post-fusion filtering and faceting ensures:
 
 ### Indexing Time
 
-- **Solr**: ~10 seconds
-- **Embeddings**: ~2 minutes (CPU)
-- **ChromaDB**: ~30 seconds
-- **Total**: ~2-3 minutes for 10,000 records
+- **Total (BM25 + vectors)**: ~2-4 minutes on CPU for 887 records
 
 ### Scalability
 
-- **10k records**: 150-250ms hybrid search
-- **100k records**: 800ms-1s (recommend migrating to Solr faceting)
+- **1k records**: 150-250ms hybrid search
+- **100k records**: 800ms-1s (recommend Solr native faceting)
 
 ## Project Structure
 
@@ -253,17 +270,17 @@ Post-fusion filtering and faceting ensures:
 Query search/
 ├── config/
 │   ├── config.yaml              # Central configuration
-│   └── solr_schema.xml          # Solr field definitions
+│   ├── solr_schema.xml          # Solr field definitions (including DenseVectorField)
+│   └── configure_solr_schema.py # Schema setup script
 ├── indexing/
 │   ├── data_loader.py           # JSONL parsing
 │   ├── embeddings.py            # Sentence-transformers wrapper
-│   ├── solr_indexer.py          # Solr batch indexing
-│   ├── chroma_indexer.py        # ChromaDB indexing
+│   ├── solr_indexer.py          # Solr batch indexing (BM25 + vector)
 │   └── run_indexing.py          # Main indexing script
 ├── api/
 │   ├── app.py                   # Flask application
 │   ├── routes.py                # API endpoints
-│   ├── search_engine.py         # Core search logic
+│   ├── search_engine.py         # Core search logic (BM25 + KNN)
 │   ├── rrf_fusion.py            # RRF algorithm
 │   └── utils.py                 # Helper functions
 ├── frontend/
@@ -274,8 +291,7 @@ Query search/
 │       ├── filters.js           # Filter manager
 │       └── visualization.js     # Chart.js charts
 ├── data/
-│   └── eval_final.jsonl         # Dataset
-├── chroma_db/                   # ChromaDB persistent storage
+│   └── eval_final_labelled.jsonl  # Dataset
 ├── logs/                        # Application logs
 ├── requirements.txt
 ├── docker-compose.yml
@@ -284,12 +300,12 @@ Query search/
 
 ## Dataset
 
-The dataset (`data/eval_final.jsonl`) contains Reddit posts and comments with:
+The dataset (`data/eval_final_labelled.jsonl`) contains Reddit posts and comments with:
 
 - **Fields**: doc_id, title, text, URL, date, author, upvotes
 - **Labels**: sentiment (positive/negative/mixed), subjectivity, aspects, tools mentioned
 - **Sources**: r/cursor, r/copilot, r/ClaudeCode, r/windsurf, r/vibecoding, etc.
-- **Size**: 10,000+ records
+- **Size**: 887 records
 
 **Sample record:**
 ```json
@@ -326,11 +342,19 @@ docker-compose logs solr
 docker-compose restart solr
 ```
 
-### ChromaDB Issues
+### Re-indexing from Scratch
 
 ```bash
-# Delete and re-index
-rm -rf chroma_db/
+# Stop Solr and wipe data volume
+docker-compose down -v
+
+# Start fresh Solr 10
+docker-compose up -d
+
+# Apply schema
+python config/configure_solr_schema.py
+
+# Re-index
 python indexing/run_indexing.py
 ```
 
@@ -349,19 +373,6 @@ server:
 
 ## Advanced Usage
 
-### Re-indexing
-
-```bash
-# Clear Solr
-curl "http://localhost:8983/solr/ai_tools_opinions/update?stream.body=<delete><query>*:*</query></delete>&commit=true"
-
-# Clear ChromaDB
-rm -rf chroma_db/
-
-# Re-index
-python indexing/run_indexing.py
-```
-
 ### Custom Queries
 
 ```python
@@ -374,8 +385,8 @@ engine = SearchEngine(config)
 # Keyword search only
 results = engine.search_solr("cursor productivity", rows=10)
 
-# Semantic search only
-results = engine.search_chroma("which tool is faster", n_results=10)
+# Semantic search only (Solr HNSW KNN)
+results = engine.search_solr_vector("which tool is faster", n_results=10)
 
 # Hybrid with filters
 results = engine.search_hybrid(
@@ -414,4 +425,4 @@ For questions or feedback, please open an issue on GitHub.
 
 ---
 
-**Built with ❤️ using Apache Solr, ChromaDB, and Flask**
+**Built with ❤️ using Apache Solr 10 and Flask**

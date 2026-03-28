@@ -22843,3 +22843,147 @@ TypeError: unhashable type: 'list'
 2026-03-28 12:15:46,856 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=claude+code+and+cursor&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.092 seconds, with status 200
 2026-03-28 12:15:47,034 - api.routes - INFO - Search: q='claude code and cursor', mode=hybrid, results=8, time=270.43ms
 2026-03-28 12:15:47,036 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 12:15:47] "GET /api/search?q=claude+code+and+cursor&mode=hybrid&page=1&page_size=10&date_from=2025-07-28&date_to=2025-09-06 HTTP/1.1" 200 -
+2026-03-28 16:17:17,299 - __main__ - INFO - Starting AI Coding Tools Opinion Search Engine
+2026-03-28 16:17:17,309 - __main__ - INFO - Initializing search engine...
+2026-03-28 16:17:17,310 - api.search_engine - INFO - Initialized Solr client: http://localhost:8983/solr/ai_tools_opinions
+2026-03-28 16:17:17,311 - api.search_engine - INFO - Loading embedding model: sentence-transformers/all-MiniLM-L6-v2
+2026-03-28 16:17:17,319 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+2026-03-28 16:17:18,884 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:17:18,895 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+2026-03-28 16:17:19,132 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:17:19,133 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-03-28 16:17:19,142 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+2026-03-28 16:17:19,381 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:17:19,393 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+2026-03-28 16:17:19,642 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:17:19,651 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/README.md "HTTP/1.1 200 OK"
+2026-03-28 16:17:19,886 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:17:19,894 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+2026-03-28 16:17:20,131 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/sentence_bert_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:17:20,139 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/sentence_bert_config.json "HTTP/1.1 200 OK"
+2026-03-28 16:17:20,389 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/adapter_config.json "HTTP/1.1 404 Not Found"
+2026-03-28 16:17:20,623 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:17:20,633 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+2026-03-28 16:17:21,151 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:17:21,161 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+2026-03-28 16:17:21,411 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:17:21,421 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/tokenizer_config.json "HTTP/1.1 200 OK"
+2026-03-28 16:17:21,688 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-03-28 16:17:21,932 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-03-28 16:17:22,338 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/1_Pooling/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:17:22,347 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/1_Pooling%2Fconfig.json "HTTP/1.1 200 OK"
+2026-03-28 16:17:22,583 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2 "HTTP/1.1 200 OK"
+2026-03-28 16:17:22,591 - api.search_engine - INFO - Embedding model loaded
+2026-03-28 16:17:22,592 - api.rrf_fusion - INFO - Initialized RRF fusion with k=60
+2026-03-28 16:17:22,592 - __main__ - INFO - Search engine initialized successfully
+2026-03-28 16:17:22,650 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/admin/ping/?' (get) with body '' in 0.057 seconds, with status 200
+2026-03-28 16:17:22,687 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=%2A%3A%2A&rows=0&wt=json' (get) with body '' in 0.036 seconds, with status 200
+2026-03-28 16:17:22,688 - __main__ - INFO - Search engine health check passed
+2026-03-28 16:17:22,693 - api.routes - INFO - Routes registered successfully
+2026-03-28 16:17:22,693 - __main__ - INFO - Routes registered
+2026-03-28 16:17:22,849 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.18.73:5000
+2026-03-28 16:17:22,850 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-28 16:17:34,799 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 16:17:34] "GET / HTTP/1.1" 200 -
+2026-03-28 16:17:34,933 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 16:17:34] "GET /css/styles.css HTTP/1.1" 200 -
+2026-03-28 16:17:34,949 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 16:17:34] "GET /js/search.js HTTP/1.1" 200 -
+2026-03-28 16:17:34,957 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 16:17:34] "[36mGET /js/visualization.js HTTP/1.1[0m" 304 -
+2026-03-28 16:17:34,967 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 16:17:34] "[36mGET /js/filters.js HTTP/1.1[0m" 304 -
+2026-03-28 16:17:55,958 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=cost+saving+Claude&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.462 seconds, with status 200
+2026-03-28 16:17:56,100 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.600 seconds, with status 200
+2026-03-28 16:17:56,109 - api.routes - INFO - Search: q='cost saving Claude', mode=hybrid, results=101, time=696.95ms
+2026-03-28 16:17:56,112 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 16:17:56] "GET /api/search?q=cost+saving+Claude&mode=hybrid&page=1&page_size=10 HTTP/1.1" 200 -
+2026-03-28 16:18:08,734 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=cost+saving+Claude&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.044 seconds, with status 200
+2026-03-28 16:18:08,735 - api.routes - INFO - Search: q='cost saving Claude', mode=keyword, results=31, time=46.14ms
+2026-03-28 16:18:08,737 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 16:18:08] "GET /api/search?q=cost+saving+Claude&mode=keyword&page=1&page_size=10 HTTP/1.1" 200 -
+2026-03-28 16:18:14,678 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.093 seconds, with status 200
+2026-03-28 16:18:14,682 - api.routes - INFO - Search: q='cost saving Claude', mode=semantic, results=100, time=122.51ms
+2026-03-28 16:18:14,684 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 16:18:14] "GET /api/search?q=cost+saving+Claude&mode=semantic&page=1&page_size=10 HTTP/1.1" 200 -
+2026-03-28 16:18:15,933 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=cost+saving+Claude&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.036 seconds, with status 200
+2026-03-28 16:18:15,960 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.059 seconds, with status 200
+2026-03-28 16:18:15,967 - api.routes - INFO - Search: q='cost saving Claude', mode=hybrid, results=101, time=95.04ms
+2026-03-28 16:18:15,969 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 16:18:15] "GET /api/search?q=cost+saving+Claude&mode=hybrid&page=1&page_size=10 HTTP/1.1" 200 -
+2026-03-28 16:53:18,582 - __main__ - INFO - Starting AI Coding Tools Opinion Search Engine
+2026-03-28 16:53:18,589 - __main__ - INFO - Initializing search engine...
+2026-03-28 16:53:18,589 - api.search_engine - INFO - Initialized Solr client: http://localhost:8983/solr/ai_tools_opinions
+2026-03-28 16:53:18,590 - api.search_engine - INFO - Loading embedding model: sentence-transformers/all-MiniLM-L6-v2
+2026-03-28 16:53:18,594 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+2026-03-28 16:53:19,881 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:53:19,893 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+2026-03-28 16:53:20,133 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:53:20,143 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+2026-03-28 16:53:20,411 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:53:20,420 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+2026-03-28 16:53:20,664 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:53:20,675 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/README.md "HTTP/1.1 200 OK"
+2026-03-28 16:53:20,914 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:53:20,915 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-03-28 16:53:20,925 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+2026-03-28 16:53:21,171 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/sentence_bert_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:53:21,179 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/sentence_bert_config.json "HTTP/1.1 200 OK"
+2026-03-28 16:53:21,423 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/adapter_config.json "HTTP/1.1 404 Not Found"
+2026-03-28 16:53:21,679 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:53:21,689 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+2026-03-28 16:53:22,427 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:53:22,435 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+2026-03-28 16:53:22,682 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:53:22,691 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/tokenizer_config.json "HTTP/1.1 200 OK"
+2026-03-28 16:53:22,946 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-03-28 16:53:23,178 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-03-28 16:53:23,593 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/1_Pooling/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:53:23,602 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/1_Pooling%2Fconfig.json "HTTP/1.1 200 OK"
+2026-03-28 16:53:23,857 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2 "HTTP/1.1 200 OK"
+2026-03-28 16:53:23,872 - api.search_engine - INFO - Embedding model loaded
+2026-03-28 16:53:23,872 - api.rrf_fusion - INFO - Initialized RRF fusion with k=60
+2026-03-28 16:53:23,873 - __main__ - INFO - Search engine initialized successfully
+2026-03-28 16:53:24,809 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/admin/ping/?' (get) with body '' in 0.935 seconds, with status 200
+2026-03-28 16:53:24,912 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=%2A%3A%2A&rows=0&wt=json' (get) with body '' in 0.101 seconds, with status 200
+2026-03-28 16:53:24,913 - __main__ - INFO - Search engine health check passed
+2026-03-28 16:53:24,922 - api.routes - INFO - Routes registered successfully
+2026-03-28 16:53:24,923 - __main__ - INFO - Routes registered
+2026-03-28 16:53:25,211 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.18.73:5000
+2026-03-28 16:53:25,212 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-03-28 17:02:10,039 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 17:02:10] "[36mGET / HTTP/1.1[0m" 304 -
+2026-03-28 17:02:10,166 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 17:02:10] "[36mGET /css/styles.css HTTP/1.1[0m" 304 -
+2026-03-28 17:02:10,172 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 17:02:10] "[36mGET /js/search.js HTTP/1.1[0m" 304 -
+2026-03-28 17:02:10,197 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 17:02:10] "[36mGET /js/filters.js HTTP/1.1[0m" 304 -
+2026-03-28 17:02:10,208 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 17:02:10] "[36mGET /js/visualization.js HTTP/1.1[0m" 304 -
+2026-03-28 17:02:22,044 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=cost+saving+Cursor&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 1.019 seconds, with status 200
+2026-03-28 17:02:22,325 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 1.296 seconds, with status 200
+2026-03-28 17:02:22,336 - api.routes - INFO - Search: q='cost saving Cursor', mode=hybrid, results=101, time=1629.75ms
+2026-03-28 17:02:22,340 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 17:02:22] "GET /api/search?q=cost+saving+Cursor&mode=hybrid&page=1&page_size=10 HTTP/1.1" 200 -
+2026-03-28 17:02:32,220 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=cost+saving+Claude&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.109 seconds, with status 200
+2026-03-28 17:02:32,295 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.181 seconds, with status 200
+2026-03-28 17:02:32,304 - api.routes - INFO - Search: q='cost saving Claude', mode=hybrid, results=101, time=220.91ms
+2026-03-28 17:02:32,307 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 17:02:32] "GET /api/search?q=cost+saving+Claude&mode=hybrid&page=1&page_size=10 HTTP/1.1" 200 -
+2026-03-28 17:03:04,063 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=cost+saving+Copilot&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.066 seconds, with status 200
+2026-03-28 17:03:04,142 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.141 seconds, with status 200
+2026-03-28 17:03:04,151 - api.routes - INFO - Search: q='cost saving Copilot', mode=hybrid, results=101, time=183.1ms
+2026-03-28 17:03:04,156 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 17:03:04] "GET /api/search?q=cost+saving+Copilot&mode=hybrid&page=1&page_size=10 HTTP/1.1" 200 -
+2026-03-28 17:03:28,998 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=cost+saving+Copilot&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.032 seconds, with status 200
+2026-03-28 17:03:29,000 - api.routes - INFO - Search: q='cost saving Copilot', mode=keyword, results=16, time=33.31ms
+2026-03-28 17:03:29,001 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 17:03:29] "GET /api/search?q=cost+saving+Copilot&mode=keyword&page=1&page_size=10 HTTP/1.1" 200 -
+2026-03-28 17:03:30,346 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.129 seconds, with status 200
+2026-03-28 17:03:30,351 - api.routes - INFO - Search: q='cost saving Copilot', mode=semantic, results=100, time=172.88ms
+2026-03-28 17:03:30,353 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 17:03:30] "GET /api/search?q=cost+saving+Copilot&mode=semantic&page=1&page_size=10 HTTP/1.1" 200 -
+2026-03-28 17:03:31,073 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=cost+saving+Copilot&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.038 seconds, with status 200
+2026-03-28 17:03:31,114 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.076 seconds, with status 200
+2026-03-28 17:03:31,121 - api.routes - INFO - Search: q='cost saving Copilot', mode=hybrid, results=101, time=110.33ms
+2026-03-28 17:03:31,123 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 17:03:31] "GET /api/search?q=cost+saving+Copilot&mode=hybrid&page=1&page_size=10 HTTP/1.1" 200 -
+2026-03-28 17:03:50,097 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=cost+saving+Copilot&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.031 seconds, with status 200
+2026-03-28 17:03:50,186 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.117 seconds, with status 200
+2026-03-28 17:03:50,196 - api.routes - INFO - Search: q='cost saving Copilot', mode=hybrid, results=26, time=158.76ms
+2026-03-28 17:03:50,198 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 17:03:50] "GET /api/search?q=cost+saving+Copilot&mode=hybrid&page=1&page_size=10&date_from=2025-08-06&date_to=2025-11-27 HTTP/1.1" 200 -
+2026-03-28 17:04:10,938 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=cost+saving+Copilot&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.023 seconds, with status 200
+2026-03-28 17:04:11,020 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.101 seconds, with status 200
+2026-03-28 17:04:11,027 - api.routes - INFO - Search: q='cost saving Copilot', mode=hybrid, results=1, time=138.94ms
+2026-03-28 17:04:11,030 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 17:04:11] "GET /api/search?q=cost+saving+Copilot&mode=hybrid&page=1&page_size=10&date_from=2025-08-06&date_to=2025-08-13 HTTP/1.1" 200 -
+2026-03-28 17:04:20,969 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=cost+saving+Copilot&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.025 seconds, with status 200
+2026-03-28 17:04:21,041 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.094 seconds, with status 200
+2026-03-28 17:04:21,046 - api.routes - INFO - Search: q='cost saving Copilot', mode=hybrid, results=101, time=121.68ms
+2026-03-28 17:04:21,048 - werkzeug - INFO - 127.0.0.1 - - [28/Mar/2026 17:04:21] "GET /api/search?q=cost+saving+Copilot&mode=hybrid&page=1&page_size=10 HTTP/1.1" 200 -

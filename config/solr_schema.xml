@@ -22,6 +22,10 @@
   <fieldType name="pdate" class="solr.DatePointField" docValues="true"/>
   <fieldType name="pint" class="solr.IntPointField" docValues="true"/>
 
+  <!-- Dense Vector Field Type for Solr 10 HNSW vector search -->
+  <fieldType name="knn_vector" class="solr.DenseVectorField"
+             vectorDimension="384" similarityFunction="cosine"/>
+
   <!-- Fields -->
   <field name="doc_id" type="string" indexed="true" stored="true" required="true"/>
   <field name="title" type="text_en" indexed="true" stored="true"/>
@@ -44,6 +48,9 @@
 
   <field name="upvotes" type="pint" indexed="true" stored="true"/>
   <field name="num_replies" type="pint" indexed="false" stored="true"/>
+
+  <!-- Vector field for HNSW semantic search (stored=false saves disk space) -->
+  <field name="vector" type="knn_vector" indexed="true" stored="false"/>
 
   <!-- Unique Key -->
   <uniqueKey>doc_id</uniqueKey>

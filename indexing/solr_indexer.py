@@ -1,6 +1,6 @@
-"""Solr indexer for Reddit dataset"""
+"""Solr indexer for Reddit dataset - includes vector embeddings for HNSW search"""
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 import pysolr
 from indexing.data_loader import combine_text_content, extract_title
 
@@ -8,9 +8,9 @@ logger = logging.getLogger(__name__)
 
 
 class SolrIndexer:
-    """Index Reddit posts and comments to Solr"""
+    """Index Reddit posts and comments to Solr with BM25 fields + vector embeddings"""
 
-    def __init__(self, solr_url: str, collection_name: str, timeout: int = 30):
+    def __init__(self, solr_url: str, collection_name: str, timeout: int = 30, embedding_model=None):
         """
         Initialize Solr client
 
@@ -18,9 +18,11 @@ class SolrIndexer:
             solr_url: Solr base URL (e.g., http://localhost:8983/solr)
             collection_name: Collection name
             timeout: Request timeout in seconds
+            embedding_model: EmbeddingModel instance (required for vector indexing)
         """
         self.solr_url = solr_url
         self.collection_name = collection_name
+        self.embedding_model = embedding_model
         self.solr = pysolr.Solr(f"{solr_url}/{collection_name}", timeout=timeout)
 
         logger.info(f"Initialized Solr indexer for {solr_url}/{collection_name}")
@@ -51,7 +53,7 @@ class SolrIndexer:
             record: JSON record from dataset
 
         Returns:
-            Solr document dict
+            Solr document dict (without vector field - added during batch_index)
         """
         doc = {
             'doc_id': record['doc_id'],
@@ -74,56 +76,72 @@ class SolrIndexer:
 
         return doc
 
-    def batch_index(self, records: List[Dict], batch_size: int = 100):
+    def batch_index(self, records: List[Dict], batch_size: int = 32):
         """
-        Index records in batches for performance
+        Index records in batches. Computes and stores vector embeddings per batch
+        if embedding_model is set.
 
         Args:
             records: List of JSON records
-            batch_size: Number of documents per batch
+            batch_size: Documents per batch (32 to match embedding batch size)
         """
         docs = []
+        texts_for_embedding = []
         total_indexed = 0
         total_skipped = 0
 
-        logger.info(f"Starting batch indexing ({batch_size} docs per batch)")
+        logger.info(f"Starting batch indexing with vectors ({batch_size} docs per batch)")
+
+        def flush_batch(doc_list, text_list):
+            if not doc_list:
+                return 0
+
+            # Compute and attach vector embeddings
+            if self.embedding_model is not None and text_list:
+                try:
+                    embeddings = self.embedding_model.encode(text_list, batch_size=batch_size)
+                    for doc, emb in zip(doc_list, embeddings):
+                        doc['vector'] = emb.tolist()  # numpy float32 -> Python list
+                except Exception as emb_error:
+                    logger.error(f"Embedding failed for batch: {emb_error}")
+                    logger.warning("Indexing batch without vector embeddings")
+
+            try:
+                self.solr.add(doc_list)
+                logger.info(f"Indexed batch of {len(doc_list)} documents")
+                return len(doc_list)
+            except Exception as batch_error:
+                logger.error(f"Batch indexing to Solr failed: {batch_error}")
+                return 0
 
         for i, record in enumerate(records, start=1):
             try:
+                text = combine_text_content(record)
                 doc = self.transform_record(record)
                 docs.append(doc)
+                texts_for_embedding.append(text)
 
                 if len(docs) >= batch_size:
-                    try:
-                        self.solr.add(docs)
-                        total_indexed += len(docs)
-                        logger.info(f"Indexed {total_indexed} documents to Solr")
-                        docs = []
-                    except Exception as batch_error:
-                        logger.error(f"Batch indexing to Solr failed: {batch_error}")
-                        # Skip this batch and continue
-                        total_skipped += len(docs)
-                        docs = []
+                    count = flush_batch(docs, texts_for_embedding)
+                    total_indexed += count
+                    total_skipped += len(docs) - count
+                    docs, texts_for_embedding = [], []
 
             except Exception as e:
                 logger.warning(f"Skipping record {record.get('doc_id', 'unknown')}: {e}")
                 total_skipped += 1
                 continue
 
-        # Index remaining documents
+        # Flush remaining documents
         if docs:
-            try:
-                self.solr.add(docs)
-                total_indexed += len(docs)
-                logger.info(f"Indexed {total_indexed} documents to Solr")
-            except Exception as batch_error:
-                logger.error(f"Final batch indexing to Solr failed: {batch_error}")
-                total_skipped += len(docs)
+            count = flush_batch(docs, texts_for_embedding)
+            total_indexed += count
+            total_skipped += len(docs) - count
 
         # Commit changes
         try:
             self.solr.commit()
-            logger.info(f"Committed {total_indexed} documents to Solr (Skipped: {total_skipped})")
+            logger.info(f"Committed. Total indexed: {total_indexed}, Skipped: {total_skipped}")
         except Exception as commit_error:
             logger.error(f"Solr commit failed: {commit_error}")
 

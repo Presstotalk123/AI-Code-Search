@@ -10,12 +10,7 @@ solr:
   collection: "ai_tools_opinions"
   timeout: 30
   batch_size: 100
-
-# ChromaDB Configuration
-chromadb:
-  persist_directory: "./chroma_db"
-  collection_name: "ai_tools_embeddings"
-  distance_metric: "cosine"
+  vector_field: "vector"
 
 # Embeddings Configuration
 embeddings:
@@ -31,7 +26,7 @@ search:
   default_page_size: 10
   max_page_size: 100
   solr_rows: 100  # Fetch top N from Solr for RRF
-  chroma_n_results: 100  # Fetch top N from Chroma for RRF
+  vector_n_results: 100  # Fetch top N from Solr KNN for RRF
 
   # Sentiment boosting multipliers
   sentiment_boost:

@@ -1,12 +1,13 @@
-"""Core search engine with hybrid search (Solr BM25 + ChromaDB semantic)"""
+"""Core search engine with hybrid search (Solr BM25 + Solr HNSW KNN semantic)"""
 import logging
 import time
+import json
 from typing import Dict, List, Tuple
 from collections import Counter
 from datetime import datetime, timedelta
 import concurrent.futures
 import pysolr
-import chromadb
+from sentence_transformers import SentenceTransformer
 from api.rrf_fusion import RRFFusion
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 class SearchEngine:
     """
-    Hybrid search engine combining Solr (keyword/BM25) and ChromaDB (semantic/embeddings)
+    Hybrid search engine combining Solr BM25 (keyword) and Solr HNSW KNN (semantic).
+    Both search paths use the same Solr collection - no second database needed.
     """
 
     def __init__(self, config: Dict):
@@ -26,22 +28,42 @@ class SearchEngine:
         """
         self.config = config
 
-        # Initialize Solr client
+        # Initialize Solr client (used for both BM25 and KNN queries)
         solr_url = f"{config['solr']['url']}/{config['solr']['collection']}"
         self.solr = pysolr.Solr(solr_url, timeout=config['solr']['timeout'])
         logger.info(f"Initialized Solr client: {solr_url}")
 
-        # Initialize ChromaDB client
-        self.chroma_client = chromadb.PersistentClient(
-            path=config['chromadb']['persist_directory']
+        # Vector field name from config
+        self.vector_field = config['solr'].get('vector_field', 'vector')
+
+        # Initialize sentence-transformers for query embedding at search time
+        embed_cfg = config['embeddings']
+        logger.info(f"Loading embedding model: {embed_cfg['model_name']}")
+        self.embedding_model = SentenceTransformer(
+            embed_cfg['model_name'],
+            device=embed_cfg.get('device', 'cpu')
         )
-        self.chroma_collection = self.chroma_client.get_collection(
-            name=config['chromadb']['collection_name']
-        )
-        logger.info(f"Initialized ChromaDB collection: {config['chromadb']['collection_name']}")
+        logger.info("Embedding model loaded")
 
         # Initialize RRF fusion
         self.rrf = RRFFusion(k=config['search']['rrf_k'])
+
+    def _embed_query(self, query: str) -> list:
+        """
+        Embed a query string into a float list for KNN search.
+
+        Args:
+            query: Search query string
+
+        Returns:
+            List of 384 floats (L2-normalised for cosine similarity)
+        """
+        embedding = self.embedding_model.encode(
+            [query],
+            normalize_embeddings=True,
+            convert_to_numpy=True
+        )[0]
+        return embedding.tolist()
 
     def search_solr(self, query: str, rows: int = 100) -> List[Dict]:
         """
@@ -72,37 +94,53 @@ class SearchEngine:
             logger.error(f"Solr search error: {e}")
             return []
 
-    def search_chroma(self, query: str, n_results: int = 100) -> List[Dict]:
+    def search_solr_vector(self, query: str, n_results: int = 100) -> List[Dict]:
         """
-        Semantic vector search using ChromaDB
+        Semantic vector search using Solr's HNSW KNN query parser.
+
+        Query syntax: {!knn f=<field> topK=<n>}<JSON array of floats>
+        Score returned is cosine similarity (0.0 - 1.0), no inversion needed.
 
         Args:
-            query: Search query string
-            n_results: Number of results to retrieve
+            query: Search query string (embedded at call time)
+            n_results: Number of nearest neighbours to retrieve
 
         Returns:
-            List of documents with metadata
+            List of Solr documents with score as cosine similarity
+        """
+        query_vector = self._embed_query(query)
+        return self._search_vector_by_embedding(query_vector, n_results)
+
+    def _search_vector_by_embedding(self, query_vector: list, n_results: int = 100) -> List[Dict]:
+        """
+        Semantic vector search using a pre-computed embedding vector.
+        Used by hybrid mode to avoid calling SentenceTransformer inside a thread.
+
+        Args:
+            query_vector: Pre-computed embedding as Python list of floats
+            n_results: Number of nearest neighbours to retrieve
+
+        Returns:
+            List of Solr documents with score as cosine similarity
         """
         try:
-            results = self.chroma_collection.query(
-                query_texts=[query],
-                n_results=n_results,
-                include=['metadatas', 'distances']
+            # {!knn f=vector topK=N}[float, float, ...]
+            # json.dumps produces the required "[0.1, 0.2, ...]" format
+            knn_query = f"{{!knn f={self.vector_field} topK={n_results}}}{json.dumps(query_vector)}"
+
+            results = self.solr.search(
+                knn_query,
+                **{
+                    'rows': n_results,
+                    'fl': '*,score'  # score = cosine similarity
+                }
             )
-
-            # Transform to unified format
-            formatted_results = []
-            if results['metadatas'] and results['metadatas'][0]:
-                for i, metadata in enumerate(results['metadatas'][0]):
-                    doc = metadata.copy()
-                    doc['distance'] = results['distances'][0][i]
-                    formatted_results.append(doc)
-
-            logger.debug(f"ChromaDB search returned {len(formatted_results)} results for query: {query}")
-            return formatted_results
+            docs = list(results)
+            logger.debug(f"Solr KNN search returned {len(docs)} results")
+            return docs
 
         except Exception as e:
-            logger.error(f"ChromaDB search error: {e}")
+            logger.error(f"Solr vector search error: {e}")
             return []
 
     def search_hybrid(
@@ -136,27 +174,37 @@ class SearchEngine:
             final_results = [(doc['doc_id'], doc.get('score', 0), doc) for doc in solr_results]
 
         elif mode == 'semantic':
-            chroma_results = self.search_chroma(query, n_results=self.config['search']['chroma_n_results'])
-            # Convert distance to similarity score (lower distance = higher similarity)
-            final_results = [(doc['doc_id'], 1 - doc['distance'], doc) for doc in chroma_results]
+            # Solr KNN - score is cosine similarity (0-1), no distance inversion needed
+            vector_results = self.search_solr_vector(
+                query, n_results=self.config['search']['vector_n_results']
+            )
+            final_results = [(doc['doc_id'], doc.get('score', 0.0), doc) for doc in vector_results]
 
         else:  # hybrid - PARALLEL execution for speed
-            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-                solr_future = executor.submit(self.search_solr, query, self.config['search']['solr_rows'])
-                chroma_future = executor.submit(self.search_chroma, query, self.config['search']['chroma_n_results'])
+            # Pre-compute embedding before spawning threads (SentenceTransformer is not thread-safe)
+            query_vector = self._embed_query(query)
 
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                solr_future = executor.submit(
+                    self.search_solr, query, self.config['search']['solr_rows']
+                )
+                vector_future = executor.submit(
+                    self._search_vector_by_embedding,
+                    query_vector, self.config['search']['vector_n_results']
+                )
                 solr_results = solr_future.result()
-                chroma_results = chroma_future.result()
+                vector_results = vector_future.result()
 
             # Fuse results using RRF
-            final_results = self.rrf.fuse_results(solr_results, chroma_results)
+            final_results = self.rrf.fuse_results(solr_results, vector_results)
 
         # Apply sentiment boosting
         if apply_sentiment_boost and self.config['search']['sentiment_boost']['enabled']:
-            final_results = self.rrf.apply_sentiment_boosting(
-                final_results,
-                self.config['search']['sentiment_boost']
-            )
+            boost_multipliers = {
+                k: v for k, v in self.config['search']['sentiment_boost'].items()
+                if k != 'enabled'
+            }
+            final_results = self.rrf.apply_sentiment_boosting(final_results, boost_multipliers)
 
         # Apply filters
         filtered_results = self._apply_filters(final_results, filters)
@@ -197,13 +245,25 @@ class SearchEngine:
         if not filters:
             return results
 
+        # Validate date formats upfront (raises ValueError → 400 in route handler)
+        if filters.get('date_from'):
+            try:
+                datetime.strptime(filters['date_from'], '%Y-%m-%d')
+            except ValueError:
+                raise ValueError(f"Invalid date_from format: '{filters['date_from']}'. Expected YYYY-MM-DD")
+        if filters.get('date_to'):
+            try:
+                datetime.strptime(filters['date_to'], '%Y-%m-%d')
+            except ValueError:
+                raise ValueError(f"Invalid date_to format: '{filters['date_to']}'. Expected YYYY-MM-DD")
+
         filtered = []
 
         for doc_id, score, metadata in results:
             # Date range filter
             if filters.get('date_from') or filters.get('date_to'):
                 doc_date_str = metadata.get('date', '')
-                # Handle list format (ChromaDB sometimes wraps values in lists)
+                # Handle list format (Solr can return multi-valued fields as lists)
                 if isinstance(doc_date_str, list):
                     doc_date_str = doc_date_str[0] if doc_date_str else ''
                 if doc_date_str:
@@ -345,6 +405,8 @@ class SearchEngine:
         return {
             'doc_id': doc_id,
             'score': round(score, 4),
+            'keyword_rank': metadata.get('_keyword_rank'),
+            'vector_rank': metadata.get('_vector_rank'),
             'title': metadata.get('title', ''),
             'snippet': snippet,
             'url': metadata.get('url', ''),
@@ -389,20 +451,20 @@ class SearchEngine:
         """
         status = {'status': 'healthy', 'components': {}}
 
-        # Check Solr
+        # Check Solr BM25
         try:
             self.solr.ping()
-            status['components']['solr'] = 'connected'
+            status['components']['solr_bm25'] = 'connected'
         except Exception as e:
-            status['components']['solr'] = f'error: {str(e)}'
+            status['components']['solr_bm25'] = f'error: {str(e)}'
             status['status'] = 'unhealthy'
 
-        # Check ChromaDB
+        # Check Solr vector index (query document count)
         try:
-            count = self.chroma_collection.count()
-            status['components']['chromadb'] = f'connected ({count} documents)'
+            result = self.solr.search('*:*', rows=0)
+            status['components']['solr_vector'] = f'connected ({result.hits} documents indexed)'
         except Exception as e:
-            status['components']['chromadb'] = f'error: {str(e)}'
+            status['components']['solr_vector'] = f'error: {str(e)}'
             status['status'] = 'unhealthy'
 
         return status

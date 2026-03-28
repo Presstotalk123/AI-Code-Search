@@ -52,6 +52,14 @@ def main():
         }
     })
 
+    # Add DenseVectorField type for Solr 10 HNSW vector search
+    add_field_type("knn_vector", {
+        "name": "knn_vector",
+        "class": "solr.DenseVectorField",
+        "vectorDimension": 384,
+        "similarityFunction": "cosine"
+    })
+
     # Add fields
     print("\n2. Adding fields...")
     fields = [
@@ -71,7 +79,9 @@ def main():
         {"name": "author", "type": "string", "stored": True, "indexed": True},
         {"name": "date", "type": "pdate", "stored": True, "indexed": True, "docValues": True},
         {"name": "upvotes", "type": "pint", "stored": True, "indexed": True},
-        {"name": "num_replies", "type": "pint", "stored": True, "indexed": False}
+        {"name": "num_replies", "type": "pint", "stored": True, "indexed": False},
+        # Vector field for Solr 10 HNSW semantic search
+        {"name": "vector", "type": "knn_vector", "stored": False, "indexed": True}
     ]
 
     for field in fields:
