@@ -3,7 +3,7 @@ import logging
 import time
 from typing import Dict, List, Tuple
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 import concurrent.futures
 import pysolr
 import chromadb
@@ -203,18 +203,21 @@ class SearchEngine:
             # Date range filter
             if filters.get('date_from') or filters.get('date_to'):
                 doc_date_str = metadata.get('date', '')
+                # Handle list format (ChromaDB sometimes wraps values in lists)
+                if isinstance(doc_date_str, list):
+                    doc_date_str = doc_date_str[0] if doc_date_str else ''
                 if doc_date_str:
                     try:
                         doc_date = datetime.fromisoformat(doc_date_str.replace('Z', '+00:00'))
 
                         if filters.get('date_from'):
-                            filter_date_from = datetime.fromisoformat(filters['date_from'])
+                            filter_date_from = datetime.fromisoformat(filters['date_from'] + 'T00:00:00+00:00')
                             if doc_date < filter_date_from:
                                 continue
 
                         if filters.get('date_to'):
-                            filter_date_to = datetime.fromisoformat(filters['date_to'])
-                            if doc_date > filter_date_to:
+                            filter_date_to = datetime.fromisoformat(filters['date_to'] + 'T00:00:00+00:00') + timedelta(days=1)
+                            if doc_date >= filter_date_to:
                                 continue
                     except Exception as e:
                         logger.warning(f"Date parsing error for {doc_id}: {e}")
