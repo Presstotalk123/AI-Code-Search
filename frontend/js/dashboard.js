@@ -16,6 +16,7 @@ class DashboardManager {
 
     async generateTrend() {
         const keyword = document.getElementById('dashKeyword').value.trim();
+        const searchMode = document.querySelector('input[name="dashSearchMode"]:checked').value;
 
         const agent = document.getElementById('dashAgent').value;
         const aspect = document.getElementById('dashAspect').value.trim();
@@ -24,6 +25,7 @@ class DashboardManager {
         const granularity = document.getElementById('dashGranularity').value;
 
         const params = new URLSearchParams({ q: keyword, granularity });
+        if (keyword) params.append('search_mode', searchMode);
         if (agent) params.append('tools', agent);
         if (aspect) params.append('aspect', aspect);
         if (dateFrom) params.append('date_from', dateFrom);

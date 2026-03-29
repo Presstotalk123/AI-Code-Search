@@ -66,6 +66,10 @@ def register_routes(app):
 
             sentiment_boost = request.args.get('sentiment_boost', 'true').lower() == 'true'
 
+            min_similarity = float(request.args.get('min_similarity', 0.0))
+            if not (0.0 <= min_similarity <= 1.0):
+                return format_response_error('min_similarity must be between 0.0 and 1.0', 400)
+
             # Execute search
             results = current_app.search_engine.search_hybrid(
                 query=query,
@@ -73,7 +77,8 @@ def register_routes(app):
                 mode=mode,
                 apply_sentiment_boost=sentiment_boost,
                 page=page,
-                page_size=page_size
+                page_size=page_size,
+                min_similarity=min_similarity
             )
 
             logger.info(f"Search: q='{query}', mode={mode}, results={results['total_count']}, time={results['query_time_ms']}ms")
@@ -107,7 +112,8 @@ def register_routes(app):
 
             query = request.args.get('q', '').strip()
             effective_query = query if query else '*:*'
-            search_mode = 'keyword' if not query else 'hybrid'
+            requested_mode = request.args.get('search_mode', '').strip()
+            search_mode = requested_mode if requested_mode in ('keyword', 'hybrid') else ('keyword' if not query else 'hybrid')
 
             granularity = request.args.get('granularity', 'month')
             if granularity not in ('day', 'week', 'month'):

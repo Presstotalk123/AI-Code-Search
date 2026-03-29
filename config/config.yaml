@@ -27,6 +27,7 @@ search:
   max_page_size: 100
   solr_rows: 100  # Fetch top N from Solr for RRF
   vector_n_results: 100  # Fetch top N from Solr KNN for RRF
+  min_similarity_threshold: 0.0  # Default: no filtering (0.0 = off, range 0.0–1.0)
 
   # Sentiment boosting multipliers
   sentiment_boost:

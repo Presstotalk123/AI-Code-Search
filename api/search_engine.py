@@ -150,7 +150,8 @@ class SearchEngine:
         mode: str = 'hybrid',
         apply_sentiment_boost: bool = True,
         page: int = 1,
-        page_size: int = 10
+        page_size: int = 10,
+        min_similarity: float = 0.0
     ) -> Dict:
         """
         Main search method with multiple modes
@@ -198,6 +199,14 @@ class SearchEngine:
             # Fuse results using RRF
             final_results = self.rrf.fuse_results(solr_results, vector_results)
 
+        # Apply similarity threshold (semantic and hybrid only; keyword uses BM25 scores, not cosine sim)
+        if min_similarity > 0.0:
+            if mode == 'semantic':
+                final_results = [(d, s, m) for d, s, m in final_results if s >= min_similarity]
+            elif mode == 'hybrid':
+                final_results = [(d, s, m) for d, s, m in final_results
+                                 if m.get('_vector_score', 0.0) >= min_similarity]
+
         # Apply sentiment boosting
         if apply_sentiment_boost and self.config['search']['sentiment_boost']['enabled']:
             boost_multipliers = {
@@ -221,7 +230,7 @@ class SearchEngine:
         query_time = time.time() - start_time
 
         return {
-            'results': [self._enrich_result(r) for r in paginated_results],
+            'results': [self._enrich_result(r, mode) for r in paginated_results],
             'total_count': total_count,
             'page': page,
             'page_size': page_size,
@@ -357,7 +366,7 @@ class SearchEngine:
             'subreddits': dict(subreddit_counter.most_common(10))  # Top 10 subreddits
         }
 
-    def _enrich_result(self, result_tuple: Tuple) -> Dict:
+    def _enrich_result(self, result_tuple: Tuple, mode: str = 'hybrid') -> Dict:
         """
         Enrich result with snippet generation and formatting
 
@@ -402,9 +411,19 @@ class SearchEngine:
                     'polarity': None
                 })
 
+        # Cosine similarity: direct score for semantic, stored _vector_score for hybrid
+        if mode == 'semantic':
+            similarity_score = round(score, 4)
+        elif mode == 'hybrid':
+            vs = metadata.get('_vector_score', 0.0)
+            similarity_score = round(vs, 4)  # 0.0 means doc appeared only in BM25
+        else:
+            similarity_score = None
+
         return {
             'doc_id': doc_id,
             'score': round(score, 4),
+            'similarity_score': similarity_score,
             'keyword_rank': metadata.get('_keyword_rank'),
             'vector_rank': metadata.get('_vector_rank'),
             'title': metadata.get('title', ''),

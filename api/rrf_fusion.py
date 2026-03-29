@@ -59,6 +59,7 @@ class RRFFusion:
         doc_data = {}
         keyword_ranks = {}
         vector_ranks = {}
+        vector_scores = {}  # cosine similarity per doc from KNN results
 
         # Process Solr results
         for rank, doc in enumerate(solr_results, start=1):
@@ -82,6 +83,7 @@ class RRFFusion:
             rrf_score = self.compute_rrf_score(rank)
             rrf_scores[doc_id] = rrf_scores.get(doc_id, 0.0) + rrf_score
             vector_ranks[doc_id] = rank
+            vector_scores[doc_id] = doc.get('score', 0.0)  # cosine similarity
 
             # Merge metadata if not from Solr (prefer Solr data as it's complete)
             if doc_id not in doc_data:
@@ -102,6 +104,7 @@ class RRFFusion:
             doc = dict(doc_data[doc_id])  # shallow copy to avoid mutating original
             doc['_keyword_rank'] = keyword_ranks.get(doc_id)
             doc['_vector_rank'] = vector_ranks.get(doc_id)
+            doc['_vector_score'] = vector_scores.get(doc_id, 0.0)  # cosine similarity for threshold filtering
             fused.append((doc_id, score, doc))
         return fused
 

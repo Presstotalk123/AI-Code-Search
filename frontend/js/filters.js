@@ -3,6 +3,11 @@ class FilterManager {
     constructor() {
         this.filters = {};
         this.initializeEventListeners();
+        // Set initial visibility based on the default checked mode
+        const defaultMode = document.querySelector('input[name="mode"]:checked');
+        if (defaultMode) {
+            this.updateSimilarityVisibility(defaultMode.value);
+        }
     }
 
     initializeEventListeners() {
@@ -35,6 +40,22 @@ class FilterManager {
                 document.getElementById('searchButton').click();
             }
         });
+
+        // Similarity threshold slider
+        document.getElementById('similarityFilter').addEventListener('input', (e) => {
+            document.getElementById('similarityValue').textContent = parseFloat(e.target.value).toFixed(2);
+        });
+
+        document.getElementById('similarityFilter').addEventListener('change', () => {
+            if (window.searchManager && window.searchManager.currentQuery) {
+                document.getElementById('searchButton').click();
+            }
+        });
+    }
+
+    updateSimilarityVisibility(mode) {
+        const group = document.getElementById('similarityFilterGroup');
+        group.style.display = (mode === 'semantic' || mode === 'hybrid') ? '' : 'none';
     }
 
     getFilters() {
@@ -52,6 +73,9 @@ class FilterManager {
         const dateTo = document.getElementById('dateTo').value;
         if (dateTo) filters.dateTo = dateTo;
 
+        const minSimilarity = parseFloat(document.getElementById('similarityFilter').value);
+        if (minSimilarity > 0) filters.minSimilarity = minSimilarity;
+
         return filters;
     }
 
@@ -60,6 +84,8 @@ class FilterManager {
         document.getElementById('sentimentFilter').value = '';
         document.getElementById('dateFrom').value = '';
         document.getElementById('dateTo').value = '';
+        document.getElementById('similarityFilter').value = '0';
+        document.getElementById('similarityValue').textContent = '0.00';
 
         // Re-search if there's an active query
         if (window.searchManager && window.searchManager.currentQuery) {
@@ -122,11 +148,29 @@ class FilterManager {
     formatToolName(tool) {
         // Format tool names for display
         const nameMap = {
-            'cursor': 'Cursor',
             'copilot': 'Copilot',
+            'cursor': 'Cursor',
             'claude_code': 'Claude Code',
+            'devin': 'Devin',
+            'codewhisperer': 'CodeWhisperer',
+            'tabnine': 'Tabnine',
             'windsurf': 'Windsurf',
-            'general': 'General'
+            'chatgpt': 'ChatGPT',
+            'gemini': 'Gemini',
+            'codeium': 'Codeium',
+            'supermaven': 'Supermaven',
+            'replit_ai': 'Replit AI',
+            'amazon_q': 'Amazon Q',
+            'jetbrains_ai': 'JetBrains AI',
+            'v0': 'v0',
+            'bolt': 'Bolt',
+            'antigravity': 'Antigravity',
+            'lovable': 'Lovable',
+            'kimi_code': 'Kimi Code',
+            'grok_code': 'Grok Code',
+            'cline': 'Cline',
+            'roo_code': 'Roo Code',
+            'kilo_code': 'Kilo Code'
         };
         return nameMap[tool] || tool;
     }
