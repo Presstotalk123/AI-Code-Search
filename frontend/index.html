@@ -13,6 +13,10 @@
         <header>
             <h1>🤖 AI Coding Tools Opinion Search</h1>
             <p>Search Reddit opinions on Cursor, Copilot, Claude Code, Windsurf & more</p>
+            <div class="view-toggle">
+                <button id="searchViewBtn" class="view-btn active">Search</button>
+                <button id="dashboardViewBtn" class="view-btn">Dashboard</button>
+            </div>
         </header>
 
         <!-- Search Section -->
@@ -133,6 +137,60 @@
             </div>
         </section>
 
+        <!-- Dashboard Section -->
+        <section id="dashboardSection" class="dashboard-section" style="display:none;">
+            <div class="dashboard-controls">
+                <div class="filter-group">
+                    <label>Agent (Tool):</label>
+                    <select id="dashAgent">
+                        <option value="">All Tools</option>
+                        <option value="cursor">Cursor</option>
+                        <option value="copilot">Copilot</option>
+                        <option value="claude_code">Claude Code</option>
+                        <option value="windsurf">Windsurf</option>
+                        <option value="general">General</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Aspect:</label>
+                    <input type="text" id="dashAspect" placeholder="e.g. productivity">
+                </div>
+                <div class="filter-group">
+                    <label>Keyword:</label>
+                    <input type="text" id="dashKeyword" placeholder="Optional: filter by topic">
+                </div>
+                <div class="filter-group">
+                    <label>Date From:</label>
+                    <input type="date" id="dashDateFrom">
+                </div>
+                <div class="filter-group">
+                    <label>Date To:</label>
+                    <input type="date" id="dashDateTo">
+                </div>
+                <div class="filter-group">
+                    <label>Granularity:</label>
+                    <select id="dashGranularity">
+                        <option value="day">Daily</option>
+                        <option value="week">Weekly</option>
+                        <option value="month" selected>Monthly</option>
+                    </select>
+                </div>
+                <button id="generateTrendBtn" class="search-button">Generate Trend</button>
+            </div>
+
+            <div class="trend-chart-container">
+                <div class="chart-header">
+                    <h3 id="trendTitle">Trend Over Time</h3>
+                    <div class="y-axis-toggle">
+                        <button id="polarityBtn" class="toggle-btn active">Polarity</button>
+                        <button id="popularityBtn" class="toggle-btn">Popularity</button>
+                    </div>
+                </div>
+                <canvas id="trendChart"></canvas>
+                <p id="trendStatus" class="trend-status">Enter a keyword and click Generate Trend.</p>
+            </div>
+        </section>
+
         <!-- Footer -->
         <footer>
             <p>Built with Apache Solr + ChromaDB + RRF Hybrid Search</p>
@@ -143,5 +201,6 @@
     <script src="js/search.js"></script>
     <script src="js/filters.js"></script>
     <script src="js/visualization.js"></script>
+    <script src="js/dashboard.js"></script>
 </body>
 </html>
