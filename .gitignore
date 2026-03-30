@@ -7,3 +7,13 @@ __pycache__/
 chroma_db/
 *.bin
 *.sqlite3
+
+# Natalie pipeline generated outputs
+classification/natalie/output/**/*.jsonl
+classification/natalie/output/chunks/progress.json
+
+# Local run artifacts
+logs/skipped_docids.txt
+
+# Large local dataset (keep local, do not track)
+data/merged_output_raw.jsonl

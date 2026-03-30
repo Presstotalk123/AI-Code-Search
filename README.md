@@ -291,6 +291,7 @@ Query search/
 │       ├── filters.js           # Filter manager
 │       └── visualization.js     # Chart.js charts
 ├── data/
+│   └── merged_output_raw.jsonl  # Raw dataset
 │   └── eval_final_labelled.jsonl  # Dataset
 ├── logs/                        # Application logs
 ├── requirements.txt
