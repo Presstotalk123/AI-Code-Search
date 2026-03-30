@@ -30,6 +30,7 @@ class SearchManager {
             if (filters.dateTo) params.append('date_to', filters.dateTo);
             if (filters.tool) params.append('tools', filters.tool);
             if (filters.sentiment) params.append('sentiment', filters.sentiment);
+            if (filters.minSimilarity) params.append('min_similarity', filters.minSimilarity);
 
             // Fetch results
             const response = await fetch(`${this.apiBaseUrl}/search?${params}`);
@@ -141,6 +142,7 @@ class SearchManager {
                 <span class="meta-item">⬆️ ${result.upvotes} upvotes</span>
                 <span class="meta-item">🤖 ${toolsStr}</span>
                 <span class="meta-item">📊 Score: ${result.score}</span>
+                ${result.similarity_score != null ? `<span class="meta-item">🎯 Similarity: ${result.similarity_score > 0 ? result.similarity_score : 'N/A'}</span>` : ''}
             </div>
             ${aspectsHtml}
         `;
@@ -232,12 +234,16 @@ document.getElementById('searchInput').addEventListener('keypress', (e) => {
     }
 });
 
-// Mode change handler (re-search with new mode)
+// Mode change handler (re-search with new mode, update similarity slider visibility)
 document.querySelectorAll('input[name="mode"]').forEach(radio => {
     radio.addEventListener('change', () => {
+        if (window.filterManager) {
+            window.filterManager.updateSimilarityVisibility(radio.value);
+        }
         // If there's an active search, re-execute with new mode
         if (searchManager.currentQuery) {
             document.getElementById('searchButton').click();
         }
     });
 });
+

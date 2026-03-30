@@ -66,6 +66,10 @@ def register_routes(app):
 
             sentiment_boost = request.args.get('sentiment_boost', 'true').lower() == 'true'
 
+            min_similarity = float(request.args.get('min_similarity', 0.0))
+            if not (0.0 <= min_similarity <= 1.0):
+                return format_response_error('min_similarity must be between 0.0 and 1.0', 400)
+
             # Execute search
             results = current_app.search_engine.search_hybrid(
                 query=query,
@@ -73,7 +77,8 @@ def register_routes(app):
                 mode=mode,
                 apply_sentiment_boost=sentiment_boost,
                 page=page,
-                page_size=page_size
+                page_size=page_size,
+                min_similarity=min_similarity
             )
 
             logger.info(f"Search: q='{query}', mode={mode}, results={results['total_count']}, time={results['query_time_ms']}ms")
@@ -84,6 +89,137 @@ def register_routes(app):
             return format_response_error(str(e), 400)
         except Exception as e:
             logger.error(f"Search error: {e}", exc_info=True)
+            return format_response_error('Internal server error', 500)
+
+    @app.route('/api/trend', methods=['GET'])
+    def trend():
+        """
+        Timeline trend endpoint
+
+        Query Parameters:
+            q (str, required): Search keyword
+            tools (str, optional): Comma-separated tool names
+            aspect (str, optional): Aspect name substring filter
+            date_from (str, optional): ISO8601 date
+            date_to (str, optional): ISO8601 date
+            granularity (str, optional): 'day', 'week', or 'month' (default: month)
+
+        Returns:
+            JSON with timeline buckets containing polarity counts and avg upvotes
+        """
+        try:
+            from datetime import datetime, timedelta
+
+            query = request.args.get('q', '').strip()
+            effective_query = query if query else '*:*'
+            requested_mode = request.args.get('search_mode', '').strip()
+            search_mode = requested_mode if requested_mode in ('keyword', 'hybrid') else ('keyword' if not query else 'hybrid')
+
+            granularity = request.args.get('granularity', 'month')
+            if granularity not in ('day', 'week', 'month'):
+                granularity = 'month'
+
+            filters = {}
+            if request.args.get('date_from'):
+                filters['date_from'] = request.args.get('date_from')
+            if request.args.get('date_to'):
+                filters['date_to'] = request.args.get('date_to')
+            if request.args.get('tools'):
+                tools_str = request.args.get('tools', '')
+                filters['tools'] = [t.strip() for t in tools_str.split(',') if t.strip()]
+
+            aspect_filter = request.args.get('aspect', '').strip().lower()
+
+            # BM25 pre-check: if keyword provided but has no literal matches, skip hybrid search
+            if query:
+                bm25_check = current_app.search_engine.search_solr(query, rows=1)
+                if not bm25_check:
+                    return jsonify({
+                        'timeline': [],
+                        'granularity': granularity,
+                        'total_results': 0,
+                        'message': 'No posts matched this keyword. Try a different search term.'
+                    })
+
+            # Fetch up to 500 results for aggregation
+            results_data = current_app.search_engine.search_hybrid(
+                query=effective_query,
+                filters=filters if filters else None,
+                mode=search_mode,
+                apply_sentiment_boost=False,
+                page=1,
+                page_size=500
+            )
+
+            docs = results_data.get('results', [])
+
+            # Apply aspect filter if provided
+            if aspect_filter:
+                filtered_docs = []
+                for doc in docs:
+                    aspects = doc.get('aspects', [])
+                    if any(aspect_filter in a.get('name', '').lower() for a in aspects):
+                        filtered_docs.append(doc)
+                docs = filtered_docs
+
+            def get_bucket_key(date_str):
+                try:
+                    dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                    if granularity == 'day':
+                        return dt.strftime('%Y-%m-%d')
+                    elif granularity == 'week':
+                        # ISO week start (Monday)
+                        week_start = dt - timedelta(days=dt.weekday())
+                        return week_start.strftime('%Y-%m-%d')
+                    else:  # month
+                        return dt.strftime('%Y-%m')
+                except Exception:
+                    return None
+
+            # Aggregate into buckets
+            buckets = {}
+            for doc in docs:
+                key = get_bucket_key(doc.get('date', ''))
+                if key is None:
+                    continue
+                if key not in buckets:
+                    buckets[key] = {
+                        'date': key,
+                        'positive': 0,
+                        'negative': 0,
+                        'mixed': 0,
+                        'not_applicable': 0,
+                        'upvotes_sum': 0,
+                        'count': 0
+                    }
+                sentiment = doc.get('sentiment', 'not_applicable')
+                if sentiment in buckets[key]:
+                    buckets[key][sentiment] += 1
+                buckets[key]['upvotes_sum'] += doc.get('upvotes', 0)
+                buckets[key]['count'] += 1
+
+            # Build sorted timeline
+            timeline = []
+            for key in sorted(buckets.keys()):
+                b = buckets[key]
+                avg_upvotes = round(b['upvotes_sum'] / b['count'], 2) if b['count'] > 0 else 0
+                timeline.append({
+                    'date': b['date'],
+                    'positive': b['positive'],
+                    'negative': b['negative'],
+                    'mixed': b['mixed'],
+                    'not_applicable': b['not_applicable'],
+                    'avg_upvotes': avg_upvotes
+                })
+
+            return jsonify({
+                'timeline': timeline,
+                'granularity': granularity,
+                'total_results': len(docs)
+            })
+
+        except Exception as e:
+            logger.error(f"Trend error: {e}", exc_info=True)
             return format_response_error('Internal server error', 500)
 
     @app.route('/api/stats', methods=['GET'])

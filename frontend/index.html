@@ -13,6 +13,10 @@
         <header>
             <h1>🤖 AI Coding Tools Opinion Search</h1>
             <p>Search Reddit opinions on Cursor, Copilot, Claude Code, Windsurf & more</p>
+            <div class="view-toggle">
+                <button id="searchViewBtn" class="view-btn active">Search</button>
+                <button id="dashboardViewBtn" class="view-btn">Dashboard</button>
+            </div>
         </header>
 
         <!-- Search Section -->
@@ -45,11 +49,29 @@
                     <label>Tool:</label>
                     <select id="toolFilter">
                         <option value="">All Tools</option>
-                        <option value="cursor">Cursor</option>
                         <option value="copilot">Copilot</option>
+                        <option value="cursor">Cursor</option>
                         <option value="claude_code">Claude Code</option>
+                        <option value="devin">Devin</option>
+                        <option value="codewhisperer">CodeWhisperer</option>
+                        <option value="tabnine">Tabnine</option>
                         <option value="windsurf">Windsurf</option>
-                        <option value="general">General</option>
+                        <option value="chatgpt">ChatGPT</option>
+                        <option value="gemini">Gemini</option>
+                        <option value="codeium">Codeium</option>
+                        <option value="supermaven">Supermaven</option>
+                        <option value="replit_ai">Replit AI</option>
+                        <option value="amazon_q">Amazon Q</option>
+                        <option value="jetbrains_ai">JetBrains AI</option>
+                        <option value="v0">v0</option>
+                        <option value="bolt">Bolt</option>
+                        <option value="antigravity">Antigravity</option>
+                        <option value="lovable">Lovable</option>
+                        <option value="kimi_code">Kimi Code</option>
+                        <option value="grok_code">Grok Code</option>
+                        <option value="cline">Cline</option>
+                        <option value="roo_code">Roo Code</option>
+                        <option value="kilo_code">Kilo Code</option>
                     </select>
                 </div>
 
@@ -72,6 +94,11 @@
                 <div class="filter-group">
                     <label>Date To:</label>
                     <input type="date" id="dateTo">
+                </div>
+
+                <div class="filter-group" id="similarityFilterGroup" style="display:none;">
+                    <label>Min. Similarity: <span id="similarityValue">0.00</span></label>
+                    <input type="range" id="similarityFilter" min="0" max="1" step="0.05" value="0">
                 </div>
 
                 <button id="clearFilters" class="clear-button">Clear Filters</button>
@@ -133,6 +160,101 @@
             </div>
         </section>
 
+        <!-- Dashboard Section -->
+        <section id="dashboardSection" class="dashboard-section" style="display:none;">
+            <div class="dashboard-controls">
+                <div class="filter-group">
+                    <label>Agent (Tool):</label>
+                    <select id="dashAgent">
+                        <option value="">All Tools</option>
+                        <option value="copilot">Copilot</option>
+                        <option value="cursor">Cursor</option>
+                        <option value="claude_code">Claude Code</option>
+                        <option value="devin">Devin</option>
+                        <option value="codewhisperer">CodeWhisperer</option>
+                        <option value="tabnine">Tabnine</option>
+                        <option value="windsurf">Windsurf</option>
+                        <option value="chatgpt">ChatGPT</option>
+                        <option value="gemini">Gemini</option>
+                        <option value="codeium">Codeium</option>
+                        <option value="supermaven">Supermaven</option>
+                        <option value="replit_ai">Replit AI</option>
+                        <option value="amazon_q">Amazon Q</option>
+                        <option value="jetbrains_ai">JetBrains AI</option>
+                        <option value="v0">v0</option>
+                        <option value="bolt">Bolt</option>
+                        <option value="antigravity">Antigravity</option>
+                        <option value="lovable">Lovable</option>
+                        <option value="kimi_code">Kimi Code</option>
+                        <option value="grok_code">Grok Code</option>
+                        <option value="cline">Cline</option>
+                        <option value="roo_code">Roo Code</option>
+                        <option value="kilo_code">Kilo Code</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Aspect:</label>
+                    <select id="dashAspect">
+                        <option value="">All Aspects</option>
+                        <option value="productivity">Productivity</option>
+                        <option value="trust_reliability">Trust &amp; Reliability</option>
+                        <option value="code_quality">Code Quality</option>
+                        <option value="control">Control</option>
+                        <option value="security_privacy">Security &amp; Privacy</option>
+                        <option value="learning_impact">Learning Impact</option>
+                        <option value="job_security">Job Security</option>
+                        <option value="cost_value">Cost &amp; Value</option>
+                        <option value="token_usage">Token Usage</option>
+                        <option value="integration_ux">Integration &amp; UX</option>
+                        <option value="troubleshooting">Troubleshooting</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Keyword:</label>
+                    <input type="text" id="dashKeyword" placeholder="Optional: filter by topic">
+                    <div style="display:flex; gap:4px; margin-top:4px;">
+                        <label class="mode-option" style="padding:4px 10px; font-size:0.82em;">
+                            <input type="radio" name="dashSearchMode" value="keyword">
+                            <span>Keyword</span>
+                        </label>
+                        <label class="mode-option" style="padding:4px 10px; font-size:0.82em;">
+                            <input type="radio" name="dashSearchMode" value="hybrid" checked>
+                            <span>Hybrid</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label>Date From:</label>
+                    <input type="date" id="dashDateFrom">
+                </div>
+                <div class="filter-group">
+                    <label>Date To:</label>
+                    <input type="date" id="dashDateTo">
+                </div>
+                <div class="filter-group">
+                    <label>Granularity:</label>
+                    <select id="dashGranularity">
+                        <option value="day">Daily</option>
+                        <option value="week">Weekly</option>
+                        <option value="month" selected>Monthly</option>
+                    </select>
+                </div>
+                <button id="generateTrendBtn" class="search-button">Generate Trend</button>
+            </div>
+
+            <div class="trend-chart-container">
+                <div class="chart-header">
+                    <h3 id="trendTitle">Trend Over Time</h3>
+                    <div class="y-axis-toggle">
+                        <button id="polarityBtn" class="toggle-btn active">Polarity</button>
+                        <button id="popularityBtn" class="toggle-btn">Popularity</button>
+                    </div>
+                </div>
+                <canvas id="trendChart"></canvas>
+                <p id="trendStatus" class="trend-status">Enter a keyword and click Generate Trend.</p>
+            </div>
+        </section>
+
         <!-- Footer -->
         <footer>
             <p>Built with Apache Solr + ChromaDB + RRF Hybrid Search</p>
@@ -143,5 +265,6 @@
     <script src="js/search.js"></script>
     <script src="js/filters.js"></script>
     <script src="js/visualization.js"></script>
+    <script src="js/dashboard.js"></script>
 </body>
 </html>
