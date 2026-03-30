@@ -223,6 +223,10 @@
                         </label>
                     </div>
                 </div>
+                <div class="filter-group" id="dashSimilarityContainer">
+                    <label>Min Similarity: <span id="dashSimilarityValue">0.60</span></label>
+                    <input type="range" id="dashMinSimilarity" min="0" max="1" step="0.05" value="0.60" style="width:100%;">
+                </div>
                 <div class="filter-group">
                     <label>Date From:</label>
                     <input type="date" id="dashDateFrom">
@@ -257,7 +261,7 @@
 
         <!-- Footer -->
         <footer>
-            <p>Built with Apache Solr + ChromaDB + RRF Hybrid Search</p>
+            <p>Built with Apache Solr + RRF Hybrid Search</p>
         </footer>
     </div>
 

@@ -103,6 +103,7 @@ def register_routes(app):
             date_from (str, optional): ISO8601 date
             date_to (str, optional): ISO8601 date
             granularity (str, optional): 'day', 'week', or 'month' (default: month)
+            min_similarity (float, optional): Similarity threshold for hybrid mode (0.0–1.0)
 
         Returns:
             JSON with timeline buckets containing polarity counts and avg upvotes
@@ -118,6 +119,12 @@ def register_routes(app):
             granularity = request.args.get('granularity', 'month')
             if granularity not in ('day', 'week', 'month'):
                 granularity = 'month'
+
+            try:
+                min_similarity = float(request.args.get('min_similarity', 0.0))
+                min_similarity = max(0.0, min(1.0, min_similarity))
+            except (ValueError, TypeError):
+                min_similarity = 0.0
 
             filters = {}
             if request.args.get('date_from'):
@@ -141,14 +148,14 @@ def register_routes(app):
                         'message': 'No posts matched this keyword. Try a different search term.'
                     })
 
-            # Fetch up to 500 results for aggregation
             results_data = current_app.search_engine.search_hybrid(
                 query=effective_query,
                 filters=filters if filters else None,
                 mode=search_mode,
                 apply_sentiment_boost=False,
                 page=1,
-                page_size=500
+                page_size=None,
+                min_similarity=min_similarity
             )
 
             docs = results_data.get('results', [])
@@ -209,7 +216,8 @@ def register_routes(app):
                     'negative': b['negative'],
                     'mixed': b['mixed'],
                     'not_applicable': b['not_applicable'],
-                    'avg_upvotes': avg_upvotes
+                    'avg_upvotes': avg_upvotes,
+                    'count': b['count']
                 })
 
             return jsonify({

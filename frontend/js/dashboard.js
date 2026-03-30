@@ -12,6 +12,21 @@ class DashboardManager {
         document.getElementById('dashKeyword').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.generateTrend();
         });
+
+        // Show/hide similarity threshold based on search mode
+        document.querySelectorAll('input[name="dashSearchMode"]').forEach(radio => {
+            radio.addEventListener('change', () => this.updateSimilarityVisibility());
+        });
+        // Update similarity label on slider change
+        document.getElementById('dashMinSimilarity').addEventListener('input', function () {
+            document.getElementById('dashSimilarityValue').textContent = parseFloat(this.value).toFixed(2);
+        });
+        this.updateSimilarityVisibility();
+    }
+
+    updateSimilarityVisibility() {
+        const mode = document.querySelector('input[name="dashSearchMode"]:checked').value;
+        document.getElementById('dashSimilarityContainer').style.display = mode === 'hybrid' ? '' : 'none';
     }
 
     async generateTrend() {
@@ -30,6 +45,9 @@ class DashboardManager {
         if (aspect) params.append('aspect', aspect);
         if (dateFrom) params.append('date_from', dateFrom);
         if (dateTo) params.append('date_to', dateTo);
+        if (searchMode === 'hybrid') {
+            params.append('min_similarity', document.getElementById('dashMinSimilarity').value);
+        }
 
         this.setStatus('Loading...');
         document.getElementById('generateTrendBtn').disabled = true;
@@ -100,11 +118,11 @@ class DashboardManager {
                 }
             ];
         } else {
-            yLabel = 'Avg Upvotes';
+            yLabel = 'Post Count';
             datasets = [
                 {
-                    label: 'Avg Upvotes',
-                    data: timeline.map(b => b.avg_upvotes),
+                    label: 'Post Count',
+                    data: timeline.map(b => b.count),
                     borderColor: '#667eea',
                     backgroundColor: 'rgba(102,126,234,0.1)',
                     tension: 0.3,

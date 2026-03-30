@@ -2,7 +2,7 @@
 import logging
 import time
 import json
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 from collections import Counter
 from datetime import datetime, timedelta
 import concurrent.futures
@@ -47,6 +47,16 @@ class SearchEngine:
 
         # Initialize RRF fusion
         self.rrf = RRFFusion(k=config['search']['rrf_k'])
+
+    def get_total_doc_count(self) -> int:
+        """Return total number of documents in the Solr collection (lazy-cached)."""
+        if not hasattr(self, '_total_doc_count'):
+            try:
+                result = self.solr.search('*:*', rows=0)
+                self._total_doc_count = result.hits
+            except Exception:
+                self._total_doc_count = 10000  # safe fallback
+        return self._total_doc_count
 
     def _embed_query(self, query: str) -> list:
         """
@@ -150,7 +160,7 @@ class SearchEngine:
         mode: str = 'hybrid',
         apply_sentiment_boost: bool = True,
         page: int = 1,
-        page_size: int = 10,
+        page_size: Optional[int] = 10,
         min_similarity: float = 0.0
     ) -> Dict:
         """
@@ -171,7 +181,8 @@ class SearchEngine:
 
         # Execute searches based on mode
         if mode == 'keyword':
-            solr_results = self.search_solr(query, rows=self.config['search']['solr_rows'])
+            solr_rows = self.get_total_doc_count() if page_size is None else self.config['search']['solr_rows']
+            solr_results = self.search_solr(query, rows=solr_rows)
             final_results = [(doc['doc_id'], doc.get('score', 0), doc) for doc in solr_results]
 
         elif mode == 'semantic':
@@ -185,13 +196,20 @@ class SearchEngine:
             # Pre-compute embedding before spawning threads (SentenceTransformer is not thread-safe)
             query_vector = self._embed_query(query)
 
+            # When page_size is None (threshold-based trend mode), use entire index as KNN pool
+            knn_n = (
+                self.get_total_doc_count()
+                if page_size is None
+                else self.config['search']['vector_n_results']
+            )
+
             with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
                 solr_future = executor.submit(
                     self.search_solr, query, self.config['search']['solr_rows']
                 )
                 vector_future = executor.submit(
                     self._search_vector_by_embedding,
-                    query_vector, self.config['search']['vector_n_results']
+                    query_vector, knn_n
                 )
                 solr_results = solr_future.result()
                 vector_results = vector_future.result()
@@ -221,11 +239,18 @@ class SearchEngine:
         # Compute facets
         facets = self._compute_facets(filtered_results)
 
-        # Pagination
+        # Pagination — page_size=None returns all results (threshold-based trend mode)
         total_count = len(filtered_results)
-        start_idx = (page - 1) * page_size
-        end_idx = start_idx + page_size
-        paginated_results = filtered_results[start_idx:end_idx]
+        if page_size is None:
+            paginated_results = filtered_results
+            effective_page_size = total_count
+            total_pages = 1
+        else:
+            start_idx = (page - 1) * page_size
+            end_idx = start_idx + page_size
+            paginated_results = filtered_results[start_idx:end_idx]
+            effective_page_size = page_size
+            total_pages = (total_count + page_size - 1) // page_size
 
         query_time = time.time() - start_time
 
@@ -233,8 +258,8 @@ class SearchEngine:
             'results': [self._enrich_result(r, mode) for r in paginated_results],
             'total_count': total_count,
             'page': page,
-            'page_size': page_size,
-            'total_pages': (total_count + page_size - 1) // page_size,
+            'page_size': effective_page_size,
+            'total_pages': total_pages,
             'facets': facets,
             'query_time_ms': round(query_time * 1000, 2),
             'mode': mode

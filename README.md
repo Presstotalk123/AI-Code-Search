@@ -11,6 +11,9 @@ A hybrid search engine for exploring Reddit opinions about AI coding tools (Curs
 - **📅 Timeline Search**: Date range filtering
 - **📈 Visual Analytics**: Sentiment pie chart and faceted navigation
 - **🎯 Multi-Tool Coverage**: Search across Cursor, Copilot, Claude Code, Windsurf discussions
+- **📈 Timeline Trend Dashboard**: Visualize sentiment trends over time with customizable granularity (daily/weekly/monthly)
+- **🎚️ Similarity Threshold Control**: Filter semantic/hybrid results by cosine similarity (configurable 0.0-1.0)
+- **🎯 Advanced Aspect Filtering**: Aspect-based filtering with polarity support (e.g., "productivity:positive")
 
 ## Architecture
 
@@ -34,6 +37,7 @@ A hybrid search engine for exploring Reddit opinions about AI coding tools (Curs
                         │  - Search Bar    │
                         │  - Filters       │
                         │  - Viz Dashboard │
+                        │  - Trend Charts  │
                         └──────────────────┘
 ```
 
@@ -107,7 +111,56 @@ A hybrid search engine for exploring Reddit opinions about AI coding tools (Curs
    - Tool (cursor, copilot, claude_code, windsurf)
    - Sentiment (positive, negative, mixed, neutral)
    - Date range (from/to)
+   - Similarity threshold (for semantic/hybrid modes)
 4. **View Results**: Ranked by relevance with sentiment badges, aspect tags, and metadata
+5. **View Dashboard**: Click "Dashboard" to switch to trend visualization mode
+
+### Dashboard & Trends
+
+The application includes a dedicated dashboard view for analyzing sentiment trends over time.
+
+#### Dashboard Overview
+
+- **Two View Modes**: Toggle between Search view (main search interface) and Dashboard view (trend visualization) using header buttons
+- **Interactive Visualizations**: Built with Chart.js for smooth, interactive timeline charts
+
+#### Timeline Trend Visualization
+
+The dashboard supports two chart display modes:
+
+- **Polarity Mode**: Shows positive/negative/mixed sentiment counts over time as separate lines
+  - Green line: Positive sentiment posts
+  - Red line: Negative sentiment posts
+  - Orange line: Mixed sentiment posts
+  - Gray line: Not applicable sentiment posts
+
+- **Popularity Mode**: Shows total post count over time
+  - Blue line: Total number of posts per time bucket
+  - Useful for identifying overall discussion volume trends
+
+Charts support customizable time granularity:
+- **Day**: Daily aggregation for fine-grained analysis
+- **Week**: Weekly buckets for medium-term trends
+- **Month**: Monthly aggregation for long-term patterns
+
+#### Dashboard Controls
+
+The dashboard provides comprehensive filtering and configuration:
+
+- **Keyword Search**: Enter topics or keywords to analyze (e.g., "cursor productivity")
+- **Search Mode**:
+  - `keyword`: BM25-based keyword matching
+  - `hybrid`: Combined semantic + keyword search (default when query provided)
+- **Tool Filter**: Select specific tools (cursor, copilot, claude_code, windsurf)
+- **Aspect Filter**: Filter by aspect name substring (e.g., "productivity", "trust")
+- **Date Range**: Specify from/to dates to limit the analysis window
+- **Similarity Threshold**: Slider control (0.0-1.0, default 0.60)
+  - Only visible in hybrid mode
+  - Filters results by cosine similarity score
+  - Higher values = more semantically similar results only
+- **Granularity**: Choose day/week/month for time bucket size
+- **Chart Mode**: Toggle between Polarity and Popularity visualization modes
+- **Generate Trend Button**: Executes the trend analysis and renders the chart
 
 ### API Usage
 
@@ -122,12 +175,17 @@ GET /api/search?q=cursor%20productivity&mode=hybrid&sentiment=positive&tools=cur
 - `mode`: `keyword`, `semantic`, or `hybrid` (default: `hybrid`)
 - `page`: Page number (default: 1)
 - `page_size`: Results per page (default: 10, max: 100)
+- `min_similarity` (float): Similarity threshold for semantic/hybrid modes (0.0-1.0, default: 0.0)
+  - Filters results by cosine similarity score
+  - Only applicable to semantic and hybrid modes
+  - In hybrid mode, filters based on the vector score component
 
 **Filters:**
 - `date_from`: ISO8601 date (e.g., `2025-01-01`)
 - `date_to`: ISO8601 date
 - `tools`: Comma-separated (e.g., `cursor,copilot`)
 - `sentiment`: `positive`, `negative`, `mixed`, `not_applicable`
+- `aspect`: Aspect name substring filter (e.g., `productivity`)
 - `source`: `reddit`
 
 **Response:**
@@ -158,6 +216,43 @@ GET /api/search?q=cursor%20productivity&mode=hybrid&sentiment=positive&tools=cur
   },
   "query_time_ms": 156.23,
   "mode": "hybrid"
+}
+```
+
+#### Trend Endpoint
+
+```bash
+GET /api/trend?q=cursor&tools=cursor&granularity=month
+```
+
+**Parameters:**
+- `q` (required): Search keyword or topic
+- `granularity`: Time bucket size - `day`, `week`, or `month` (default: `month`)
+- `search_mode`: `keyword` or `hybrid` (default: `keyword` for empty query, `hybrid` otherwise)
+- `min_similarity`: Similarity threshold for hybrid mode (0.0-1.0, default: 0.0)
+
+**Filters:**
+- `tools`: Comma-separated tool names (e.g., `cursor,copilot`)
+- `aspect`: Aspect name substring filter (e.g., `productivity`)
+- `date_from`: ISO8601 date (e.g., `2025-01-01`)
+- `date_to`: ISO8601 date
+
+**Response:**
+```json
+{
+  "timeline": [
+    {
+      "date": "2025-01",
+      "positive": 12,
+      "negative": 8,
+      "mixed": 3,
+      "not_applicable": 2,
+      "avg_upvotes": 15.4,
+      "count": 25
+    }
+  ],
+  "granularity": "month",
+  "total_results": 152
 }
 ```
 
@@ -240,6 +335,53 @@ final_score = rrf_score × sentiment_multiplier
 
 Configurable in `config.yaml`.
 
+### Advanced Retrieval Features
+
+#### Similarity Threshold Filtering
+
+The search engine supports cosine similarity threshold filtering for semantic and hybrid searches:
+
+- **Range**: 0.0 (any similarity) to 1.0 (exact semantic match)
+- **Hybrid Mode Behavior**: Filters based on the vector score component after RRF fusion
+- **Use Case**: Ensures semantic relevance in trend analysis by excluding low-similarity matches
+- **Performance**: Applied after RRF fusion, so it doesn't affect initial retrieval speed
+
+Example: `min_similarity=0.60` only returns results with >60% semantic similarity to the query.
+
+#### Nonsense Query Detection
+
+The search engine includes intelligent query validation to prevent wasted computation:
+
+- **BM25 Pre-check**: For keyword queries, performs a quick BM25 search first
+- **Early Return**: If no literal keyword matches found, skips expensive vector embedding computation
+- **User Feedback**: Returns early with helpful message explaining no results were found
+- **Efficiency**: Saves vector embedding generation time on nonsense or misspelled keywords
+
+This mechanism prevents the system from attempting semantic search on queries like "asdfghjkl" or gibberish.
+
+#### Aspect Polarity Parsing
+
+Enhanced aspect filtering supports sentiment polarity qualifiers:
+
+- **Format**: `aspect:polarity` (e.g., `productivity:positive`, `trust_reliability:negative`)
+- **Supported Polarities**: `positive`, `negative`, `mixed`, `not_applicable`
+- **Backward Compatible**: Still accepts plain aspect names without polarity (e.g., `productivity`)
+- **Use Case**: Fine-grained sentiment analysis by specific aspects
+
+Example: Filter for posts discussing cursor's productivity in a positive light: `aspect=productivity:positive&tools=cursor`
+
+#### Threshold-Based Retrieval for Trends
+
+The trend endpoint uses a special retrieval mode for comprehensive analysis:
+
+- **Pagination-Free Mode**: `page_size=None` retrieves all matching results
+- **Full KNN Pool**: Uses entire index as the KNN search pool for better recall
+- **Time Bucket Aggregation**: Groups results by date buckets (day/week/month)
+- **Sentiment Distribution**: Calculates positive/negative/mixed/not_applicable counts per bucket
+- **Performance**: Optimized for trend analysis over large time ranges
+
+This mode ensures accurate trend visualization by analyzing the complete result set rather than paginated subsets.
+
 ### Faceted Search
 
 Post-fusion filtering and faceting ensures:
@@ -289,7 +431,8 @@ Query search/
 │   └── js/
 │       ├── search.js            # Search manager
 │       ├── filters.js           # Filter manager
-│       └── visualization.js     # Chart.js charts
+│       ├── visualization.js     # Chart.js charts
+│       └── dashboard.js         # Trend dashboard & timeline charts
 ├── data/
 │   └── eval_final_labelled.jsonl  # Dataset
 ├── logs/                        # Application logs
@@ -396,6 +539,18 @@ results = engine.search_hybrid(
     page=1,
     page_size=20
 )
+
+# Generate trend data with similarity threshold
+results = engine.search_hybrid(
+    query="cursor productivity",
+    mode='hybrid',
+    filters={'tools': ['cursor'], 'date_from': '2025-01-01'},
+    page_size=None,  # Return all results for trend aggregation
+    min_similarity=0.60  # Only include results with >60% semantic similarity
+)
+
+# Trend aggregation (see api/routes.py lines 172-221 for full implementation)
+# Results are grouped into time buckets with sentiment distribution counts
 ```
 
 ## Contributing
