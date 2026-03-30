@@ -291,13 +291,33 @@ Query search/
 │       ├── filters.js           # Filter manager
 │       └── visualization.js     # Chart.js charts
 ├── data/
-│   └── merged_output_raw.jsonl  # Raw dataset
-│   └── eval_final_labelled.jsonl  # Dataset
+│   ├── merged_output_raw.jsonl   # Large raw dataset (local only)
+│   └── eval_final_labelled.jsonl # Labelled evaluation subset
 ├── logs/                        # Application logs
 ├── requirements.txt
 ├── docker-compose.yml
 └── README.md
 ```
+
+## Local Output Policy
+
+The Natalie classification pipeline can generate large JSONL artifacts that are intended to stay local:
+
+- `classification/natalie/output/**/*.jsonl`
+- `classification/natalie/output/chunks/progress.json`
+- `data/merged_output_raw.jsonl`
+
+These are ignored by `.gitignore` to avoid:
+
+- GitHub file size limit failures (>100MB)
+- secret scanning alerts from scraped/raw content
+- accidental repository bloat
+
+If you need to share results, prefer:
+
+- small aggregated summaries
+- sampled subsets
+- external artifact storage (release asset, cloud bucket, drive)
 
 ## Dataset
 
