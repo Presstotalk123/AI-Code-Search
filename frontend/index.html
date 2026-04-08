@@ -6,6 +6,7 @@
     <title>AI Coding Tools Opinion Search</title>
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.2.2/wordcloud2.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -124,6 +125,11 @@
                 <div class="facet-group">
                     <h4>Top Subreddits</h4>
                     <div id="subredditFacets" class="facet-list"></div>
+                </div>
+
+                <div class="facet-group" id="wordCloudFacet" style="display:none;">
+                    <h4>Word Cloud</h4>
+                    <canvas id="wordCloudCanvas" width="240" height="200"></canvas>
                 </div>
             </aside>
 
@@ -269,6 +275,7 @@
     <script src="js/search.js"></script>
     <script src="js/filters.js"></script>
     <script src="js/visualization.js"></script>
+    <script src="js/wordcloud.js"></script>
     <script src="js/dashboard.js"></script>
 </body>
 </html>

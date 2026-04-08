@@ -57,6 +57,7 @@ class SearchManager {
 
         if (data.total_count === 0) {
             container.innerHTML = '<p class="no-results">No results found. Try different keywords or filters.</p>';
+            if (window.wordCloudManager) window.wordCloudManager.update([]);
             return;
         }
 
@@ -83,6 +84,11 @@ class SearchManager {
         // Update sentiment chart
         if (window.visualizationManager) {
             window.visualizationManager.updateSentimentChart(data.facets.sentiment);
+        }
+
+        // Update word cloud
+        if (window.wordCloudManager) {
+            window.wordCloudManager.update(data.results);
         }
     }
 
