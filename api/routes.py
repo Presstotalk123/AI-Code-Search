@@ -121,10 +121,11 @@ def register_routes(app):
                 granularity = 'month'
 
             try:
-                min_similarity = float(request.args.get('min_similarity', 0.0))
+                default_threshold = current_app.search_engine.config['search']['min_similarity_threshold']
+                min_similarity = float(request.args.get('min_similarity', default_threshold))
                 min_similarity = max(0.0, min(1.0, min_similarity))
             except (ValueError, TypeError):
-                min_similarity = 0.0
+                min_similarity = current_app.search_engine.config['search']['min_similarity_threshold']
 
             filters = {}
             if request.args.get('date_from'):

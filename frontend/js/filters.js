@@ -74,7 +74,7 @@ class FilterManager {
         if (dateTo) filters.dateTo = dateTo;
 
         const minSimilarity = parseFloat(document.getElementById('similarityFilter').value);
-        if (minSimilarity > 0) filters.minSimilarity = minSimilarity;
+        if (minSimilarity > 0.6) filters.minSimilarity = minSimilarity;
 
         return filters;
     }
@@ -84,8 +84,8 @@ class FilterManager {
         document.getElementById('sentimentFilter').value = '';
         document.getElementById('dateFrom').value = '';
         document.getElementById('dateTo').value = '';
-        document.getElementById('similarityFilter').value = '0';
-        document.getElementById('similarityValue').textContent = '0.00';
+        document.getElementById('similarityFilter').value = '0.6';
+        document.getElementById('similarityValue').textContent = '0.60';
 
         // Re-search if there's an active query
         if (window.searchManager && window.searchManager.currentQuery) {

@@ -16,7 +16,7 @@ solr:
 embeddings:
   model_name: "sentence-transformers/all-MiniLM-L6-v2"
   # Alternative: "sentence-transformers/all-mpnet-base-v2" (better quality, slower)
-  max_seq_length: 512
+  max_seq_length: 256  # all-MiniLM-L6-v2 was trained on 256 tokens; setting higher degrades quality
   batch_size: 32
   device: "cpu"  # or "cuda" if GPU available
 
@@ -27,11 +27,11 @@ search:
   max_page_size: 100
   solr_rows: 100  # Fetch top N from Solr for RRF
   vector_n_results: 100  # Fetch top N from Solr KNN for RRF
-  min_similarity_threshold: 0.0  # Default: no filtering (0.0 = off, range 0.0–1.0)
+  min_similarity_threshold: 0.6  # Trend default: filter posts with < 0.6 vector score (Solr range 0.5–1.0)
 
   # Sentiment boosting multipliers
   sentiment_boost:
-    enabled: true
+    enabled: False
     positive: 1.2
     negative: 0.8
     mixed: 1.0

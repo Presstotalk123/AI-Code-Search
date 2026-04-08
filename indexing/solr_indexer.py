@@ -25,6 +25,12 @@ class SolrIndexer:
         self.embedding_model = embedding_model
         self.solr = pysolr.Solr(f"{solr_url}/{collection_name}", timeout=timeout)
 
+        if embedding_model is None:
+            logger.warning(
+                "SolrIndexer initialized WITHOUT an embedding_model. "
+                "Documents will be indexed without vector embeddings — HNSW/KNN semantic search will return no results. "
+                "Pass an EmbeddingModel instance to enable vector indexing."
+            )
         logger.info(f"Initialized Solr indexer for {solr_url}/{collection_name}")
 
     def _transform_aspects(self, aspects) -> List[str]:
@@ -144,6 +150,19 @@ class SolrIndexer:
             logger.info(f"Committed. Total indexed: {total_indexed}, Skipped: {total_skipped}")
         except Exception as commit_error:
             logger.error(f"Solr commit failed: {commit_error}")
+
+        # Merge all Lucene segments into one.
+        # IMPORTANT: Solr/Lucene builds a separate HNSW graph per segment. If multiple
+        # segments exist (e.g. from autoCommit firing during long indexing runs), KNN
+        # search retrieves topK candidates per segment independently and merges — this
+        # degrades recall compared to a single global HNSW graph (as ChromaDB uses).
+        # optimize() forces a full segment merge so the entire corpus is one HNSW graph.
+        try:
+            logger.info("Optimizing Solr index (merging segments for best HNSW recall)...")
+            self.solr.optimize()
+            logger.info("Index optimization complete — single HNSW graph over all documents")
+        except Exception as opt_error:
+            logger.error(f"Solr optimize failed: {opt_error}")
 
     def clear_collection(self):
         """Delete all documents from collection (use with caution)"""

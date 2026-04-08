@@ -74,27 +74,26 @@ A hybrid search engine for exploring Reddit opinions about AI coding tools (Curs
 
    Verify Solr is running: http://localhost:8983/solr
 
-4. **Apply Solr schema** (adds BM25 fields + HNSW vector field)
+4. **Set up Solr schema and index the dataset**
    ```bash
-   python config/configure_solr_schema.py
+   python config/setup_solr.py
    ```
 
-5. **Index the dataset**
-   ```bash
-   python indexing/run_indexing.py
-   ```
+   This single script handles everything:
+   - Copies `config/merged-managed-schema.xml` into the Solr container
+   - Reloads the Solr core to apply the schema
+   - Clears any existing documents
+   - Indexes all documents with BM25 fields + 384-dim vector embeddings (~2-4 minutes on CPU, downloads ~80MB model on first run)
+   - Optimizes the index to a single segment for best HNSW recall
 
-   This will:
-   - Download the sentence-transformers model (~80MB, first run only)
-   - Index documents to Solr with BM25 fields + 384-dim vector embeddings
-   - Take ~2-4 minutes on CPU
+   > **Note:** You only need to re-run `setup_solr.py` if the data or schema has changed. For normal restarts, skip straight to step 5.
 
-6. **Start the Flask API**
+5. **Start the Flask API**
    ```bash
    python api/app.py
    ```
 
-7. **Open the application**
+6. **Open the application**
 
    Navigate to http://localhost:5000
 
@@ -411,9 +410,10 @@ Post-fusion filtering and faceting ensures:
 ```
 Query search/
 ├── config/
-│   ├── config.yaml              # Central configuration
-│   ├── solr_schema.xml          # Solr field definitions (including DenseVectorField)
-│   └── configure_solr_schema.py # Schema setup script
+│   ├── config.yaml                  # Central configuration
+│   ├── solr_schema.xml              # Solr field definitions (including DenseVectorField)
+│   ├── merged-managed-schema.xml    # Full Solr managed schema (default types + custom fields)
+│   └── setup_solr.py                # One-shot setup: schema + indexing + optimize
 ├── indexing/
 │   ├── data_loader.py           # JSONL parsing
 │   ├── embeddings.py            # Sentence-transformers wrapper
@@ -494,11 +494,8 @@ docker-compose down -v
 # Start fresh Solr 10
 docker-compose up -d
 
-# Apply schema
-python config/configure_solr_schema.py
-
-# Re-index
-python indexing/run_indexing.py
+# Apply schema + re-index in one step
+python config/setup_solr.py
 ```
 
 ### Port Already in Use

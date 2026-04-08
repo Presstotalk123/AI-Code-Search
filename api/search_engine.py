@@ -109,7 +109,9 @@ class SearchEngine:
         Semantic vector search using Solr's HNSW KNN query parser.
 
         Query syntax: {!knn f=<field> topK=<n>}<JSON array of floats>
-        Score returned is cosine similarity (0.0 - 1.0), no inversion needed.
+        Score returned by Lucene is (1 + dot_product) / 2, so range is [0.5, 1.0] for
+        pre-normalized vectors. A score of 1.0 = identical, 0.5 = orthogonal (unrelated).
+        This differs from raw cosine similarity — do not compare thresholds against ChromaDB values.
 
         Args:
             query: Search query string (embedded at call time)
@@ -142,7 +144,7 @@ class SearchEngine:
                 knn_query,
                 **{
                     'rows': n_results,
-                    'fl': '*,score'  # score = cosine similarity
+                    'fl': '*,score'  # score = (1 + dot_product) / 2, range [0.5, 1.0]
                 }
             )
             docs = list(results)

@@ -39,7 +39,8 @@ def main():
         logger.info("Initializing embedding model (this may take a minute on first run)...")
         embedding_model = EmbeddingModel(
             model_name=config['embeddings']['model_name'],
-            device=config['embeddings']['device']
+            device=config['embeddings']['device'],
+            max_seq_length=config['embeddings'].get('max_seq_length')
         )
 
         # Initialize Solr indexer with embedding model
