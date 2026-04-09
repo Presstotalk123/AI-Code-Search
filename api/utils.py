@@ -66,3 +66,76 @@ def validate_search_params(query: str, mode: str, page: int, page_size: int) -> 
         return False, "Page size must be between 1 and 100"
 
     return True, None
+
+
+# Domain-specific words to protect from spell correction
+_DOMAIN_WORDS = [
+    # AI coding tools
+    'copilot', 'claude code', 'codex', 'kline', 'llama', 'gemma', 'gpt', 'haiku', 'sonnet', 'opus','cursor', 'windsurf', 'codewhisperer', 'tabnine', 'codeium',
+    'supermaven', 'devin', 'chatgpt', 'gemini', 'replit', 'jetbrains',
+    'claude', 'kimi', 'grok', 'cline', 'lovable', 'antigravity',
+    'bolt', 'roo', 'kilo', 'openai', 'mistral', 'gemini', 'anthropic', 'deepseek', 'moonshot',
+    # AI / ML terminology
+    'ai', 'llm', 'llms', 'agentic', 'finetune', 'finetuning', 'finetuned',
+    'hallucinate', 'hallucination', 'hallucinations', 'hallucinating', 'hallucinated',
+    # Editors / IDEs
+    'vscode', 'ide', 'neovim', 'nvim', 'pycharm', 'intellij',
+    # Dev tools / ecosystems
+    'github', 'gitlab', 'stackoverflow', 'reddit', 'subreddit',
+    'docker', 'dockerfile', 'kubectl', 'localhost',
+    'npm', 'pip', 'sdk', 'cli', 'cors', 'json', 'yaml', 'toml', 'huggingface', 'openrouter',
+    'eslint', 'linter', 'linting',
+    'pytorch', 'tensorflow',
+    # Programming concepts
+    'autocomplete', 'autocompletion', 'autoformat',
+    'refactor', 'refactoring', 'plugin', 'snippet', 'workflow', 'bugfix',
+    'codebase', 'boilerplate', 'typescript', 'javascript', 'golang',
+    'async', 'await', 'regex', 'config',
+    # Reddit-specific
+    'upvote', 'upvotes', 'downvote', 'downvotes',
+    # Misc
+    'v0',
+]
+
+_spell_checker = None
+
+
+def _get_spell_checker():
+    global _spell_checker
+    if _spell_checker is None:
+        from spellchecker import SpellChecker
+        _spell_checker = SpellChecker()
+        # Give domain words a high frequency (50000) so they outrank common English
+        # words when both are at the same edit distance from a misspelled token.
+        # e.g. "cursr" → "cursor" (domain) beats "curse" (common English, low dist)
+        high_freq = {word: 1_000_000 for word in _DOMAIN_WORDS}
+        _spell_checker.word_frequency._dictionary.update(high_freq)
+        # Remove 'claud' so it doesn't block correction to 'claude'
+        _spell_checker.word_frequency._dictionary.pop('claud', None)
+    return _spell_checker
+
+
+def suggest_spell_correction(query: str):
+    """
+    Returns a corrected query string if misspellings are found, else None.
+    Skips tokens that are very short (<= 2 chars), contain ':', or are digits.
+    """
+    try:
+        spell = _get_spell_checker()
+        tokens = query.split()
+        corrected_tokens = []
+        changed = False
+        for token in tokens:
+            if len(token) <= 2 or ':' in token or token.isdigit():
+                corrected_tokens.append(token)
+                continue
+            correction = spell.correction(token)
+            if correction and correction != token.lower():
+                corrected_tokens.append(correction)
+                changed = True
+            else:
+                corrected_tokens.append(token)
+        return ' '.join(corrected_tokens) if changed else None
+    except Exception as e:
+        logger.warning(f"Spell check error: {e}")
+        return None

@@ -1,7 +1,7 @@
 """API routes for search engine"""
 import logging
 from flask import request, jsonify, current_app
-from api.utils import format_response_error, validate_search_params
+from api.utils import format_response_error, validate_search_params, suggest_spell_correction
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +50,9 @@ def register_routes(app):
             if not is_valid:
                 return format_response_error(error_msg, 400)
 
+            # Spell check suggestion
+            spelling_suggestion = suggest_spell_correction(query)
+
             # Parse filters
             filters = {}
             if request.args.get('date_from'):
@@ -83,6 +86,7 @@ def register_routes(app):
 
             logger.info(f"Search: q='{query}', mode={mode}, results={results['total_count']}, time={results['query_time_ms']}ms")
 
+            results['spelling_suggestion'] = spelling_suggestion
             return jsonify(results)
 
         except ValueError as e:

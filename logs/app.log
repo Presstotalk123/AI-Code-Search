@@ -24330,3 +24330,141 @@ TypeError: unhashable type: 'list'
 2026-04-08 21:30:19,484 - werkzeug - INFO - 127.0.0.1 - - [08/Apr/2026 21:30:19] "GET /api/trend?q=&granularity=month&tools=kimi_code&min_similarity=0.8 HTTP/1.1" 200 -
 2026-04-08 21:30:28,830 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=%2A%3A%2A&rows=887&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.116 seconds, with status 200
 2026-04-08 21:30:28,840 - werkzeug - INFO - 127.0.0.1 - - [08/Apr/2026 21:30:28] "GET /api/trend?q=&granularity=month&tools=windsurf&min_similarity=0.8 HTTP/1.1" 200 -
+2026-04-09 23:08:22,248 - __main__ - INFO - Starting AI Coding Tools Opinion Search Engine
+2026-04-09 23:08:22,253 - __main__ - INFO - Initializing search engine...
+2026-04-09 23:08:22,253 - api.search_engine - INFO - Initialized Solr client: http://localhost:8983/solr/ai_tools_opinions
+2026-04-09 23:08:22,253 - api.search_engine - INFO - Loading embedding model: sentence-transformers/all-MiniLM-L6-v2
+2026-04-09 23:08:22,256 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+2026-04-09 23:08:22,934 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+2026-04-09 23:08:22,946 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+2026-04-09 23:08:23,185 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+2026-04-09 23:08:23,187 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-04-09 23:08:23,200 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+2026-04-09 23:08:23,446 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+2026-04-09 23:08:23,456 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+2026-04-09 23:08:23,693 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+2026-04-09 23:08:23,718 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/README.md "HTTP/1.1 200 OK"
+2026-04-09 23:08:23,966 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+2026-04-09 23:08:23,976 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+2026-04-09 23:08:24,226 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/sentence_bert_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-04-09 23:08:24,236 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/sentence_bert_config.json "HTTP/1.1 200 OK"
+2026-04-09 23:08:24,470 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/adapter_config.json "HTTP/1.1 404 Not Found"
+2026-04-09 23:08:24,708 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-04-09 23:08:24,719 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+2026-04-09 23:08:25,165 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-04-09 23:08:25,178 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+2026-04-09 23:08:25,423 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-04-09 23:08:25,435 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/tokenizer_config.json "HTTP/1.1 200 OK"
+2026-04-09 23:08:25,697 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-04-09 23:08:25,938 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-04-09 23:08:26,269 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/1_Pooling/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-04-09 23:08:26,278 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/1_Pooling%2Fconfig.json "HTTP/1.1 200 OK"
+2026-04-09 23:08:26,531 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2 "HTTP/1.1 200 OK"
+2026-04-09 23:08:26,540 - api.search_engine - INFO - Embedding model loaded
+2026-04-09 23:08:26,541 - api.rrf_fusion - INFO - Initialized RRF fusion with k=60
+2026-04-09 23:08:26,542 - __main__ - INFO - Search engine initialized successfully
+2026-04-09 23:08:26,600 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/admin/ping/?' (get) with body '' in 0.058 seconds, with status 200
+2026-04-09 23:08:26,608 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=%2A%3A%2A&rows=0&wt=json' (get) with body '' in 0.007 seconds, with status 200
+2026-04-09 23:08:26,608 - __main__ - INFO - Search engine health check passed
+2026-04-09 23:08:26,611 - api.routes - INFO - Routes registered successfully
+2026-04-09 23:08:26,611 - __main__ - INFO - Routes registered
+2026-04-09 23:08:26,691 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.18.73:5000
+2026-04-09 23:08:26,692 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-04-09 23:08:50,900 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:08:50] "GET / HTTP/1.1" 200 -
+2026-04-09 23:08:50,957 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:08:50] "GET /css/styles.css HTTP/1.1" 200 -
+2026-04-09 23:08:50,970 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:08:50] "GET /js/filters.js HTTP/1.1" 200 -
+2026-04-09 23:08:50,971 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:08:50] "GET /js/wordcloud.js HTTP/1.1" 200 -
+2026-04-09 23:08:50,971 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:08:50] "GET /js/dashboard.js HTTP/1.1" 200 -
+2026-04-09 23:08:50,972 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:08:50] "GET /js/search.js HTTP/1.1" 200 -
+2026-04-09 23:08:50,972 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:08:50] "GET /js/visualization.js HTTP/1.1" 200 -
+2026-04-09 23:09:15,354 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.241 seconds, with status 200
+2026-04-09 23:09:15,368 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=cursr+vs+claude+code&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.257 seconds, with status 200
+2026-04-09 23:09:15,372 - api.routes - INFO - Search: q='cursr vs claude code', mode=hybrid, results=13, time=301.03ms
+2026-04-09 23:09:15,374 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:09:15] "GET /api/search?q=cursr+vs+claude+code&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:09:20,710 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=cursor+vs+claude+code&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.097 seconds, with status 200
+2026-04-09 23:09:20,743 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.123 seconds, with status 200
+2026-04-09 23:09:20,746 - api.routes - INFO - Search: q='cursor vs claude code', mode=hybrid, results=67, time=182.08ms
+2026-04-09 23:09:20,747 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:09:20] "GET /api/search?q=cursor+vs+claude+code&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:09:30,604 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=claud+vs+copilt&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.059 seconds, with status 200
+2026-04-09 23:09:30,662 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.113 seconds, with status 200
+2026-04-09 23:09:30,665 - api.routes - INFO - Search: q='claud vs copilt', mode=hybrid, results=1, time=162.23ms
+2026-04-09 23:09:30,666 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:09:30] "GET /api/search?q=claud+vs+copilt&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:09:32,725 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=claud+vs+copilot&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.068 seconds, with status 200
+2026-04-09 23:09:32,782 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.121 seconds, with status 200
+2026-04-09 23:09:32,785 - api.routes - INFO - Search: q='claud vs copilot', mode=hybrid, results=14, time=169.71ms
+2026-04-09 23:09:32,786 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:09:32] "GET /api/search?q=claud+vs+copilot&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:09:41,890 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=claude+vs+copilot&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.054 seconds, with status 200
+2026-04-09 23:09:41,943 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.101 seconds, with status 200
+2026-04-09 23:09:41,945 - api.routes - INFO - Search: q='claude vs copilot', mode=hybrid, results=17, time=146.49ms
+2026-04-09 23:09:41,946 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:09:41] "GET /api/search?q=claude+vs+copilot&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:10:39,148 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=claud+code+vs+copilot&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.051 seconds, with status 200
+2026-04-09 23:10:39,208 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.109 seconds, with status 200
+2026-04-09 23:10:39,211 - api.routes - INFO - Search: q='claud code vs copilot', mode=hybrid, results=22, time=149.47ms
+2026-04-09 23:10:39,212 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:10:39] "GET /api/search?q=claud+code+vs+copilot&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:10:43,398 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=claude+code+vs+copilot&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.032 seconds, with status 200
+2026-04-09 23:10:43,463 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.094 seconds, with status 200
+2026-04-09 23:10:43,467 - api.routes - INFO - Search: q='claude code vs copilot', mode=hybrid, results=51, time=138.21ms
+2026-04-09 23:10:43,468 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:10:43] "GET /api/search?q=claude+code+vs+copilot&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:18:04,564 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.044 seconds, with status 200
+2026-04-09 23:18:04,569 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=claude+code+vs+copilot&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.050 seconds, with status 200
+2026-04-09 23:18:04,573 - api.routes - INFO - Search: q='claude code vs copilot', mode=hybrid, results=51, time=84.22ms
+2026-04-09 23:18:04,574 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:18:04] "GET /api/search?q=claude+code+vs+copilot&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:18:10,802 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=claud+code+vs+copilot&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.067 seconds, with status 200
+2026-04-09 23:18:10,822 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.082 seconds, with status 200
+2026-04-09 23:18:10,824 - api.routes - INFO - Search: q='claud code vs copilot', mode=hybrid, results=22, time=118.57ms
+2026-04-09 23:18:10,825 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:18:10] "GET /api/search?q=claud+code+vs+copilot&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:18:17,240 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=clade+code+vs+copilot&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.052 seconds, with status 200
+2026-04-09 23:18:17,277 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.086 seconds, with status 200
+2026-04-09 23:18:17,280 - api.routes - INFO - Search: q='clade code vs copilot', mode=hybrid, results=9, time=126.5ms
+2026-04-09 23:18:17,281 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:18:17] "GET /api/search?q=clade+code+vs+copilot&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:18:22,833 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=claude+code+vs+copilot&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.055 seconds, with status 200
+2026-04-09 23:18:22,881 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.098 seconds, with status 200
+2026-04-09 23:18:22,889 - api.routes - INFO - Search: q='claude code vs copilot', mode=hybrid, results=51, time=166.76ms
+2026-04-09 23:18:22,890 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:18:22] "GET /api/search?q=claude+code+vs+copilot&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:24:59,897 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=chatgpr+vs+copilot&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.047 seconds, with status 200
+2026-04-09 23:24:59,905 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.052 seconds, with status 200
+2026-04-09 23:24:59,909 - api.routes - INFO - Search: q='chatgpr vs copilot', mode=hybrid, results=31, time=92.51ms
+2026-04-09 23:24:59,910 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:24:59] "GET /api/search?q=chatgpr+vs+copilot&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:25:02,803 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=chatgpt+vs+copilot&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.073 seconds, with status 200
+2026-04-09 23:25:02,823 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.088 seconds, with status 200
+2026-04-09 23:25:02,827 - api.routes - INFO - Search: q='chatgpt vs copilot', mode=hybrid, results=31, time=121.38ms
+2026-04-09 23:25:02,828 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:25:02] "GET /api/search?q=chatgpt+vs+copilot&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:25:09,395 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=gpr40&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.018 seconds, with status 200
+2026-04-09 23:25:09,456 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.076 seconds, with status 200
+2026-04-09 23:25:09,458 - api.routes - INFO - Search: q='gpr40', mode=hybrid, results=0, time=97.38ms
+2026-04-09 23:25:09,459 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:25:09] "GET /api/search?q=gpr40&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:25:19,732 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=gpt-4o&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.028 seconds, with status 200
+2026-04-09 23:25:19,782 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.076 seconds, with status 200
+2026-04-09 23:25:19,786 - api.routes - INFO - Search: q='gpt-4o', mode=hybrid, results=7, time=97.42ms
+2026-04-09 23:25:19,787 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:25:19] "GET /api/search?q=gpt-4o&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:25:35,590 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=gpr&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.021 seconds, with status 200
+2026-04-09 23:25:35,648 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.075 seconds, with status 200
+2026-04-09 23:25:35,651 - api.routes - INFO - Search: q='gpr', mode=hybrid, results=0, time=103.17ms
+2026-04-09 23:25:35,652 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:25:35] "GET /api/search?q=gpr&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:25:39,127 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=GPT&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.023 seconds, with status 200
+2026-04-09 23:25:39,179 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.071 seconds, with status 200
+2026-04-09 23:25:39,182 - api.routes - INFO - Search: q='GPT', mode=hybrid, results=12, time=100.63ms
+2026-04-09 23:25:39,182 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:25:39] "GET /api/search?q=GPT&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:25:49,655 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=gpt&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.018 seconds, with status 200
+2026-04-09 23:25:49,704 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.064 seconds, with status 200
+2026-04-09 23:25:49,706 - api.routes - INFO - Search: q='gpt', mode=hybrid, results=12, time=102.65ms
+2026-04-09 23:25:49,707 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:25:49] "GET /api/search?q=gpt&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:25:52,481 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=gpt+vs+claude&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.031 seconds, with status 200
+2026-04-09 23:25:52,535 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.082 seconds, with status 200
+2026-04-09 23:25:52,538 - api.routes - INFO - Search: q='gpt vs claude', mode=hybrid, results=9, time=118.32ms
+2026-04-09 23:25:52,539 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:25:52] "GET /api/search?q=gpt+vs+claude&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:33:01,296 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.045 seconds, with status 200
+2026-04-09 23:33:01,296 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=claude+code+and+thr+anthropic&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.047 seconds, with status 200
+2026-04-09 23:33:01,302 - api.routes - INFO - Search: q='claude code and thr anthropic', mode=hybrid, results=11, time=86.96ms
+2026-04-09 23:33:01,303 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:33:01] "GET /api/search?q=claude+code+and+thr+anthropic&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:33:05,775 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=claude+code+and+the+anthropic&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.035 seconds, with status 200
+2026-04-09 23:33:05,833 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.088 seconds, with status 200
+2026-04-09 23:33:05,837 - api.routes - INFO - Search: q='claude code and the anthropic', mode=hybrid, results=12, time=115.49ms
+2026-04-09 23:33:05,838 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:33:05] "GET /api/search?q=claude+code+and+the+anthropic&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -
+2026-04-09 23:33:25,544 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/?q=gpr&rows=100&defType=edismax&qf=title%5E2+text&fl=%2A%2Cscore&wt=json' (get) with body '' in 0.011 seconds, with status 200
+2026-04-09 23:33:25,603 - pysolr - INFO - Finished 'http://localhost:8983/solr/ai_tools_opinions/select/' (post) with body 'q=%7B%21kn' in 0.068 seconds, with status 200
+2026-04-09 23:33:25,607 - api.routes - INFO - Search: q='gpr', mode=hybrid, results=0, time=88.34ms
+2026-04-09 23:33:25,607 - werkzeug - INFO - 127.0.0.1 - - [09/Apr/2026 23:33:25] "GET /api/search?q=gpr&mode=hybrid&page=1&page_size=10&min_similarity=0.7 HTTP/1.1" 200 -

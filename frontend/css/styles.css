@@ -682,3 +682,20 @@ footer {
     margin: 8px auto 0;
     border-radius: 6px;
 }
+
+/* Spelling Suggestion */
+.spelling-suggestion {
+    margin: 6px 0 0 0;
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.spelling-suggestion a {
+    color: #1a73e8;
+    font-style: italic;
+    text-decoration: none;
+}
+
+.spelling-suggestion a:hover {
+    text-decoration: underline;
+}

@@ -49,6 +49,21 @@ class SearchManager {
     }
 
     renderResults(data) {
+        // Show spelling suggestion if present
+        const suggestionEl = document.getElementById('spellingSuggestion');
+        if (data.spelling_suggestion) {
+            suggestionEl.innerHTML =
+                `Did you mean: <a href="#" id="spellingLink">${data.spelling_suggestion}</a>?`;
+            suggestionEl.style.display = 'block';
+            document.getElementById('spellingLink').addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('searchInput').value = data.spelling_suggestion;
+                document.getElementById('searchButton').click();
+            });
+        } else {
+            suggestionEl.style.display = 'none';
+        }
+
         const container = document.getElementById('resultsContainer');
         container.innerHTML = '';
 
