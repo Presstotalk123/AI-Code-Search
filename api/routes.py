@@ -95,6 +95,19 @@ def register_routes(app):
             logger.error(f"Search error: {e}", exc_info=True)
             return format_response_error('Internal server error', 500)
 
+    @app.route('/api/suggest', methods=['GET'])
+    def suggest():
+        """Autocomplete suggestions. Param: q (min 2 chars)."""
+        try:
+            query = request.args.get('q', '').strip()
+            if len(query) < 2:
+                return jsonify({'suggestions': []})
+            suggestions = current_app.search_engine.get_suggestions(query)
+            return jsonify({'suggestions': suggestions})
+        except Exception as e:
+            logger.error(f"Suggest error: {e}", exc_info=True)
+            return jsonify({'suggestions': []})
+
     @app.route('/api/trend', methods=['GET'])
     def trend():
         """

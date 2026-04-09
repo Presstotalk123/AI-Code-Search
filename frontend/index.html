@@ -23,7 +23,10 @@
         <!-- Search Section -->
         <section class="search-section">
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Search for opinions (e.g., 'cursor vs copilot productivity')">
+                <div class="search-input-wrapper">
+                    <input type="text" id="searchInput" placeholder="Search for opinions (e.g., 'cursor vs copilot productivity')">
+                    <ul id="suggestDropdown" class="suggest-dropdown" role="listbox" style="display:none;"></ul>
+                </div>
                 <button id="searchButton">Search</button>
             </div>
             <div id="spellingSuggestion" class="spelling-suggestion" style="display:none;"></div>

@@ -466,6 +466,33 @@ class SearchEngine:
             'content_type': metadata.get('content_type', 'post')
         }
 
+    def get_suggestions(self, query: str, max_suggestions: int = 8) -> list:
+        """Return suggestion strings for a partial query using lightweight BM25."""
+        if not query or len(query.strip()) < 2:
+            return []
+        try:
+            results = self.solr.search(
+                query,
+                **{'rows': max_suggestions, 'defType': 'edismax',
+                   'qf': 'title^2 text', 'fl': 'title,text'}
+            )
+            suggestions, seen = [], set()
+            for doc in results:
+                title = doc.get('title', '').strip()
+                if not title:
+                    text = doc.get('text', '').strip()
+                    title = text[:80] + ('...' if len(text) > 80 else '')
+                if title and title not in seen:
+                    seen.add(title)
+                    suggestions.append(title[:80] + ('...' if len(title) > 80 else ''))
+                if len(suggestions) >= max_suggestions:
+                    break
+            logger.debug(f"Suggestions for '{query}': {len(suggestions)} results")
+            return suggestions
+        except Exception as e:
+            logger.error(f"Suggestion error: {e}")
+            return []
+
     def get_stats(self) -> Dict:
         """
         Get dataset statistics

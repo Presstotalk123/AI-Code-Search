@@ -226,8 +226,105 @@ class SearchManager {
     }
 }
 
+// Autocomplete Manager
+class AutocompleteManager {
+    constructor(apiBaseUrl = 'http://localhost:5000/api') {
+        this.apiBaseUrl = apiBaseUrl;
+        this.debounceTimer = null;
+        this.debounceDelay = 300;
+        this.minQueryLength = 2;
+        this.activeIndex = -1;
+        this.suggestions = [];
+        this.isOpen = false;
+    }
+
+    init() {
+        this.inputEl = document.getElementById('searchInput');
+        this.dropdownEl = document.getElementById('suggestDropdown');
+        if (!this.inputEl || !this.dropdownEl) return;
+        this._bindEvents();
+    }
+
+    _bindEvents() {
+        this.inputEl.addEventListener('input', () => {
+            clearTimeout(this.debounceTimer);
+            this.debounceTimer = setTimeout(() => this._onInput(), this.debounceDelay);
+        });
+        this.inputEl.addEventListener('keydown', (e) => this._onKeydown(e));
+        document.addEventListener('click', (e) => {
+            if (!this.inputEl.contains(e.target) && !this.dropdownEl.contains(e.target))
+                this.close();
+        });
+    }
+
+    async _onInput() {
+        const query = this.inputEl.value.trim();
+        if (query.length < this.minQueryLength) { this.close(); return; }
+        try {
+            const res = await fetch(`${this.apiBaseUrl}/suggest?q=${encodeURIComponent(query)}`);
+            if (!res.ok) { this.close(); return; }
+            const data = await res.json();
+            this.suggestions = data.suggestions || [];
+            this._render();
+        } catch { this.close(); }
+    }
+
+    _render() {
+        this.dropdownEl.innerHTML = '';
+        this.activeIndex = -1;
+        if (!this.suggestions.length) { this.close(); return; }
+        this.suggestions.forEach((text) => {
+            const li = document.createElement('li');
+            li.className = 'suggest-item';
+            li.textContent = text;
+            li.setAttribute('role', 'option');
+            li.addEventListener('mousedown', (e) => { e.preventDefault(); this._selectSuggestion(text); });
+            this.dropdownEl.appendChild(li);
+        });
+        this.dropdownEl.style.display = 'block';
+        this.isOpen = true;
+    }
+
+    _onKeydown(e) {
+        if (!this.isOpen) return;
+        const items = this.dropdownEl.querySelectorAll('.suggest-item');
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            this.activeIndex = Math.min(this.activeIndex + 1, items.length - 1);
+            items.forEach((el, i) => el.classList.toggle('suggest-active', i === this.activeIndex));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            this.activeIndex = Math.max(this.activeIndex - 1, -1);
+            items.forEach((el, i) => el.classList.toggle('suggest-active', i === this.activeIndex));
+        } else if (e.key === 'Enter' && this.activeIndex >= 0) {
+            e.preventDefault();
+            this._selectSuggestion(this.suggestions[this.activeIndex]);
+        } else if (e.key === 'Escape') {
+            this.close();
+        }
+    }
+
+    _selectSuggestion(text) {
+        this.inputEl.value = text;
+        this.close();
+        document.getElementById('searchButton').click();
+    }
+
+    close() {
+        this.dropdownEl.style.display = 'none';
+        this.dropdownEl.innerHTML = '';
+        this.isOpen = false;
+        this.activeIndex = -1;
+        this.suggestions = [];
+    }
+}
+
 // Initialize search manager
 const searchManager = new SearchManager();
+
+// Initialize autocomplete
+const autocompleteManager = new AutocompleteManager();
+autocompleteManager.init();
 
 // Search button click handler
 document.getElementById('searchButton').addEventListener('click', async () => {
