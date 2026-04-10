@@ -64,10 +64,13 @@ def register_routes(app):
                 filters['tools'] = [t.strip() for t in tools_str.split(',') if t.strip()]
             if request.args.get('sentiment'):
                 filters['sentiment'] = request.args.get('sentiment')
+            if request.args.get('subjectivity'):
+                filters['subjectivity'] = request.args.get('subjectivity')
             if request.args.get('source'):
                 filters['source'] = request.args.get('source')
 
             sentiment_boost = request.args.get('sentiment_boost', 'true').lower() == 'true'
+            aspect_boost = request.args.get('aspect_boost', 'true').lower() == 'true'
 
             min_similarity = float(request.args.get('min_similarity', 0.0))
             if not (0.0 <= min_similarity <= 1.0):
@@ -79,6 +82,7 @@ def register_routes(app):
                 filters=filters if filters else None,
                 mode=mode,
                 apply_sentiment_boost=sentiment_boost,
+                apply_aspect_boost=aspect_boost,
                 page=page,
                 page_size=page_size,
                 min_similarity=min_similarity

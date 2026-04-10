@@ -140,6 +140,116 @@ class RRFFusion:
 
         return boosted_results
 
+    def apply_aspect_boosting(
+        self,
+        results: List[Tuple[str, float, Dict]],
+        detected_aspects: List[str],
+        boost_multiplier: float = 1.3
+    ) -> List[Tuple[str, float, Dict]]:
+        """
+        Boost documents whose indexed aspects overlap with query-detected aspects.
+
+        Aspects are stored in Solr as multi-valued strings in "aspect_name:polarity"
+        or plain "aspect_name" format. If any detected aspect matches an indexed
+        aspect on the document, the RRF score is multiplied by boost_multiplier.
+
+        Args:
+            results: List of (doc_id, score, metadata) tuples
+            detected_aspects: Canonical aspect names detected from the query
+            boost_multiplier: Score multiplier for matching documents (e.g. 1.3 = +30%)
+
+        Returns:
+            Re-ranked results with aspect-boosted scores
+        """
+        if not detected_aspects:
+            return results
+
+        detected = set(detected_aspects)
+        boosted = []
+
+        for doc_id, score, metadata in results:
+            aspects_raw = metadata.get('aspects', [])
+            if isinstance(aspects_raw, str):
+                aspects_raw = [aspects_raw]
+
+            doc_aspects = set()
+            for a in aspects_raw:
+                name = a.split(':')[0].strip().lower() if ':' in a else a.strip().lower()
+                doc_aspects.add(name)
+
+            new_score = score * boost_multiplier if doc_aspects & detected else score
+            boosted.append((doc_id, new_score, metadata))
+
+        boosted.sort(key=lambda x: x[1], reverse=True)
+        logger.debug(
+            f"Applied aspect boosting for {list(detected)} to {len(boosted)} results "
+            f"(multiplier={boost_multiplier})"
+        )
+        return boosted
+
+    def apply_time_decay(
+        self,
+        results: List[Tuple[str, float, Dict]],
+        lambda_: float = 0.001,
+        score_similarity_threshold: float = 0.005
+    ) -> List[Tuple[str, float, Dict]]:
+        """
+        Apply exponential time-decay as a tiebreaker for near-identical scores.
+
+        Only decays a document's score if an adjacent (in rank) document has a score
+        within `score_similarity_threshold`. Formula: score * exp(-lambda_ * days_old).
+
+        Args:
+            results: Sorted (doc_id, score, metadata) tuples, highest score first.
+            lambda_: Decay rate per day.
+            score_similarity_threshold: Max score gap between neighbours to trigger decay.
+
+        Returns:
+            Re-sorted results with time-decay applied where relevant.
+        """
+        from math import exp
+        from datetime import datetime, timezone
+
+        if not results:
+            return results
+
+        scores = [score for _, score, _ in results]
+        n = len(scores)
+
+        # Mark which documents are in a near-tie with a neighbour
+        near_tie = [False] * n
+        for i in range(n):
+            if i > 0 and abs(scores[i] - scores[i - 1]) < score_similarity_threshold:
+                near_tie[i] = True
+                near_tie[i - 1] = True
+            if i < n - 1 and abs(scores[i] - scores[i + 1]) < score_similarity_threshold:
+                near_tie[i] = True
+                near_tie[i + 1] = True
+
+        now = datetime.now(timezone.utc)
+        decayed = []
+
+        for idx, (doc_id, score, metadata) in enumerate(results):
+            if near_tie[idx]:
+                date_str = metadata.get('date', '')
+                if isinstance(date_str, list):
+                    date_str = date_str[0] if date_str else ''
+                if date_str:
+                    try:
+                        doc_date = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                        days_old = max((now - doc_date).days, 0)
+                        score = score * exp(-lambda_ * days_old)
+                    except Exception:
+                        pass  # no valid date → no decay, score unchanged
+            decayed.append((doc_id, score, metadata))
+
+        decayed.sort(key=lambda x: x[1], reverse=True)
+        logger.debug(
+            f"Applied time-decay (λ={lambda_}, threshold={score_similarity_threshold}) "
+            f"to {sum(near_tie)} near-tie documents"
+        )
+        return decayed
+
     def explain_score(self, doc_id: str, solr_rank: int = None, vector_rank: int = None) -> str:
         """
         Generate explanation for RRF score calculation (debugging utility)

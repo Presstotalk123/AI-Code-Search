@@ -29,6 +29,12 @@ class FilterManager {
             }
         });
 
+        document.getElementById('subjectivityFilter').addEventListener('change', () => {
+            if (window.searchManager && window.searchManager.currentQuery) {
+                document.getElementById('searchButton').click();
+            }
+        });
+
         document.getElementById('dateFrom').addEventListener('change', () => {
             if (window.searchManager && window.searchManager.currentQuery) {
                 document.getElementById('searchButton').click();
@@ -67,6 +73,9 @@ class FilterManager {
         const sentiment = document.getElementById('sentimentFilter').value;
         if (sentiment) filters.sentiment = sentiment;
 
+        const subjectivity = document.getElementById('subjectivityFilter').value;
+        if (subjectivity) filters.subjectivity = subjectivity;
+
         const dateFrom = document.getElementById('dateFrom').value;
         if (dateFrom) filters.dateFrom = dateFrom;
 
@@ -82,6 +91,7 @@ class FilterManager {
     clearFilters() {
         document.getElementById('toolFilter').value = '';
         document.getElementById('sentimentFilter').value = '';
+        document.getElementById('subjectivityFilter').value = '';
         document.getElementById('dateFrom').value = '';
         document.getElementById('dateTo').value = '';
         document.getElementById('similarityFilter').value = '0.6';

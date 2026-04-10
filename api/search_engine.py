@@ -10,6 +10,32 @@ import pysolr
 from sentence_transformers import SentenceTransformer
 from api.rrf_fusion import RRFFusion
 
+# Canonical aspect names → list of trigger keywords (case-insensitive substring match)
+_ASPECT_KEYWORDS: Dict[str, List[str]] = {
+    "productivity":      ["productivity", "productive", "efficiency", "efficient",
+                          "workflow"],
+    "trust_reliability": ["trust", "reliable", "reliability", "stable", "stability",
+                          "trustworthy", "consistent", "dependable"],
+    "code_quality":      ["code quality", "quality", "correctness", "accurate",
+                          "accuracy", "hallucination", "wrong code", "buggy code"],
+    "control":           ["control", "autonomy", "customize", "customization",
+                          "configure", "configuration", "override"],
+    "security_privacy":  ["security", "secure", "privacy", "private", "data privacy",
+                          "safe", "vulnerable", "vulnerability"],
+    "learning_impact":   ["learn", "learning", "education", "educational",
+                          "skill", "upskill", "reskill", "training"],
+    "job_security":      ["job", "employment", "replace", "replacement",
+                          "automation", "career", "laid off", "redundant"],
+    "cost_value":        ["cost", "price", "pricing", "expensive", "cheap", "value",
+                          "money", "affordable", "subscription", "pay", "billing"],
+    "token_usage":       ["token", "tokens", "context window", "context limit",
+                          "rate limit"],
+    "integration_ux":    ["integration", "integrate", "ux", "ui", "interface",
+                          "setup", "install", "plugin", "extension"],
+    "troubleshooting":   ["debug", "debugging", "fix", "troubleshoot", "error",
+                          "issue", "problem", "crash", "bug"],
+}
+
 logger = logging.getLogger(__name__)
 
 
@@ -161,6 +187,7 @@ class SearchEngine:
         filters: Dict = None,
         mode: str = 'hybrid',
         apply_sentiment_boost: bool = True,
+        apply_aspect_boost: bool = True,
         page: int = 1,
         page_size: Optional[int] = 10,
         min_similarity: float = 0.0
@@ -235,6 +262,21 @@ class SearchEngine:
             }
             final_results = self.rrf.apply_sentiment_boosting(final_results, boost_multipliers)
 
+        # Apply aspect-aware re-ranking
+        detected_aspects = self._detect_aspects(query) if apply_aspect_boost else []
+        if detected_aspects and self.config['search'].get('aspect_boost', {}).get('enabled', False):
+            boost_multiplier = self.config['search']['aspect_boost'].get('boost_multiplier', 1.3)
+            final_results = self.rrf.apply_aspect_boosting(final_results, detected_aspects, boost_multiplier)
+
+        # Apply time-decay tiebreaker
+        time_decay_cfg = self.config['search'].get('time_decay', {})
+        if time_decay_cfg.get('enabled', False):
+            final_results = self.rrf.apply_time_decay(
+                final_results,
+                lambda_=time_decay_cfg.get('lambda', 0.001),
+                score_similarity_threshold=time_decay_cfg.get('score_similarity_threshold', 0.005)
+            )
+
         # Apply filters
         filtered_results = self._apply_filters(final_results, filters)
 
@@ -264,7 +306,8 @@ class SearchEngine:
             'total_pages': total_pages,
             'facets': facets,
             'query_time_ms': round(query_time * 1000, 2),
-            'mode': mode
+            'mode': mode,
+            'detected_aspects': detected_aspects
         }
 
     def _apply_filters(self, results: List[Tuple], filters: Dict) -> List[Tuple]:
@@ -340,6 +383,12 @@ class SearchEngine:
             if filters.get('source'):
                 doc_source = metadata.get('source', '')
                 if doc_source != filters['source']:
+                    continue
+
+            # Subjectivity filter
+            if filters.get('subjectivity'):
+                doc_subjectivity = metadata.get('subjectivity', '')
+                if doc_subjectivity != filters['subjectivity']:
                     continue
 
             filtered.append((doc_id, score, metadata))
@@ -465,6 +514,19 @@ class SearchEngine:
             'upvotes': metadata.get('upvotes', 0),
             'content_type': metadata.get('content_type', 'post')
         }
+
+    def _detect_aspects(self, query: str) -> List[str]:
+        """
+        Return canonical aspect names whose keywords appear in the query string.
+
+        Uses case-insensitive substring matching against _ASPECT_KEYWORDS.
+        """
+        q_lower = query.lower()
+        return [
+            aspect
+            for aspect, keywords in _ASPECT_KEYWORDS.items()
+            if any(kw in q_lower for kw in keywords)
+        ]
 
     def get_suggestions(self, query: str, max_suggestions: int = 8) -> list:
         """Return suggestion strings for a partial query using lightweight BM25."""

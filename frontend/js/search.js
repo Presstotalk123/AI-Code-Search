@@ -30,6 +30,7 @@ class SearchManager {
             if (filters.dateTo) params.append('date_to', filters.dateTo);
             if (filters.tool) params.append('tools', filters.tool);
             if (filters.sentiment) params.append('sentiment', filters.sentiment);
+            if (filters.subjectivity) params.append('subjectivity', filters.subjectivity);
             if (filters.minSimilarity) params.append('min_similarity', filters.minSimilarity);
 
             // Fetch results

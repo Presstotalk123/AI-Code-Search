@@ -37,6 +37,17 @@ search:
     mixed: 1.0
     not_applicable: 1.0
 
+  # Aspect-aware re-ranking: boost docs whose indexed aspects match query-detected aspects
+  aspect_boost:
+    enabled: true
+    boost_multiplier: 1.3
+
+  # Time-decay tiebreaker: penalise older posts when scores are near-identical
+  time_decay:
+    enabled: true
+    lambda: 0.001          # decay rate per day; 0.001 ≈ ~50% penalty after ~693 days
+    score_similarity_threshold: 0.005  # only apply when adjacent scores differ by less than this
+
 # Data Configuration
 data:
   source_path: "./data/eval_final_labelled.jsonl"
