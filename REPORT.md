@@ -336,3 +336,363 @@ A single aggregate sentiment percentage is insufficient for understanding commun
 The trend dashboard makes the time dimension a first-class analytical axis. Combined with aspect filtering, it enables fine-grained questions such as: *"How has community sentiment about Cursor's productivity impact changed since January?"* or *"Did discussion volume around Claude Code increase after its March release?"* These are questions that no static search result or aggregate count can answer, but the trend dashboard answers directly.
 
 The Chart.js line chart is configured with `tension: 0.3` for smooth, readable curves (avoiding the jagged appearance of linear interpolation on sparse data), an `index` tooltip interaction mode that shows all series values on hover for easy comparison, and a maximum of 12 x-axis ticks to prevent label overcrowding on high-granularity timelines.
+
+---
+
+## 3. Innovations Implemented — Indexing and Ranking
+
+The base retrieval pipeline (BM25 + vector + RRF) is a strong foundation, but it has three well-known failure modes: **result redundancy**, **topic-agnostic ranking**, and **recency blindness**. This section describes the three innovations added to address these problems, explains why each is necessary, and illustrates each with a concrete before-and-after scenario and the implementing code.
+
+---
+
+### 3.1 MMR Diversity Reranking
+
+#### The Problem: Near-Duplicate Results
+
+Hybrid RRF fusion optimises for relevance — it surfaces the documents most likely to match the query. But Reddit discussions cluster around the same events and talking points. When many posts discuss the same narrow sub-topic (e.g., a widely-shared complaint about Copilot autocomplete latency), the top 10 RRF results can be near-duplicates: different posts essentially saying the same thing in slightly different words. A user scanning the result list sees little new information after the first card.
+
+#### Before MMR
+
+Query: `"Copilot slow autocomplete"`
+
+```
+Rank  RRF Score  Snippet
+1     0.0320     "Copilot suggestions are so slow lately, anyone else?"
+2     0.0310     "anyone else notice Copilot autocomplete lagging today?"
+3     0.0310     "Copilot is unusually slow for me too, same issue"
+4     0.0300     "yes Copilot latency is terrible this week"
+5     0.0280     "Cursor is faster than Copilot for autocomplete"   ← only diverse result
+```
+
+Four of the top five results are semantically near-identical. The user learns nothing new from results 2–4.
+
+#### After MMR (λ = 0.8)
+
+Once doc_A is selected, the algorithm penalises docs_B/C/D for being similar to it. A comparison perspective and a historical update are promoted instead:
+
+```
+Rank  MMR Score  Snippet
+1     0.0320     "Copilot suggestions are so slow lately, anyone else?"
+2     0.0270     "Cursor is faster than Copilot for autocomplete"
+3     0.0240     "Copilot latency improved after the November update"
+4     0.0180     "anyone else notice Copilot autocomplete lagging today?"
+5     0.0160     "switching to Cursor fixed my latency issues entirely"
+```
+
+The user now sees the original complaint, a tool comparison, a historical note, a corroborating report, and a workaround — five distinct perspectives instead of five restatements of one.
+
+#### Why It Matters
+
+The user's goal is to form a complete picture of community opinion. Redundant results waste the limited display space of a result page and create the false impression that consensus is stronger than it is. MMR ensures that each additional result adds new information by explicitly penalising similarity to already-selected results.
+
+#### The Algorithm
+
+MMR (Maximal Marginal Relevance, Carbonell & Goldstein 1998) iteratively selects results that maximise a linear combination of relevance and novelty:
+
+```
+MMR(d) = λ · sim(d, query) − (1 − λ) · max_{s ∈ Selected} sim(d, s)
+```
+
+- `λ = 1.0` collapses to pure relevance (standard ranking)
+- `λ = 0.0` collapses to pure diversity (maximum spread)
+- `λ = 0.8` strongly favours relevance but breaks ties in favour of novel documents
+
+**Implementation** ([api/rrf_fusion.py](api/rrf_fusion.py), `apply_mmr`, lines 253–333):
+
+```python
+# Build pairwise cosine similarity matrix from stored document vectors
+V = np.stack(doc_vecs)   # shape (n_candidates, 384)
+sim_matrix = V @ V.T     # cosine similarities (vectors are L2-normalised)
+
+selected, remaining = [], list(range(len(pool)))
+while remaining:
+    if not selected:
+        # First pick: highest raw relevance
+        best = max(remaining, key=lambda i: rel_scores[i])
+    else:
+        # Subsequent picks: maximise MMR score
+        def mmr_score(i):
+            max_sim = max(sim_matrix[i][j] for j in selected)
+            return lambda_ * rel_scores[i] - (1 - lambda_) * max_sim
+        best = max(remaining, key=mmr_score)
+    selected.append(best)
+    remaining.remove(best)
+```
+
+MMR only re-orders the top-`candidate_pool` results (default: 50). Results ranked below this threshold are appended unchanged, keeping the algorithm's cost proportional to the displayed result set rather than the entire corpus.
+
+**Configuration** ([config/config.yaml](config/config.yaml)):
+
+```yaml
+mmr:
+  enabled: true
+  lambda: 0.8        # 0.8 = strongly favour relevance, gently penalise redundancy
+  candidate_pool: 50 # only re-order top-N; remainder appended unchanged
+```
+
+---
+
+### 3.2 Aspect-Aware Reranking and Time-Decay Tiebreaking
+
+#### 3.2.1 The Problem: Topic-Agnostic Ranking
+
+RRF scores reflect how well a document matches the query string lexically and semantically — but they are blind to the *topic dimension* the query is asking about. A post about Cursor's pricing policy and a post about Cursor's code quality can receive identical RRF scores for the query `"Cursor code quality"`, because both posts mention "Cursor" and "quality" many times. Users expecting results focused on code correctness instead see results dominated by value-for-money discussions.
+
+#### Before Aspect Boosting
+
+Query: `"Cursor code quality"`
+
+The system detects aspect `code_quality` from the query (via keyword `"code quality"`), but RRF has no knowledge of aspect annotations:
+
+```
+Rank  RRF Score  Indexed Aspects  Snippet
+1     0.0310     [cost_value]     "Cursor is expensive but worth it for quality output"
+2     0.0300     [code_quality]   "Cursor produces really accurate completions"
+3     0.0290     [code_quality]   "code quality from Cursor is hit or miss"
+```
+
+The top result is about pricing, not correctness. Results 2 and 3 are exactly what the user wanted.
+
+#### After Aspect Boosting (× 1.3)
+
+The system detects `code_quality` from the query. Any indexed document whose `aspects` field contains `code_quality` has its RRF score multiplied by 1.3:
+
+```
+Rank  Boosted Score  Indexed Aspects  Snippet
+1     0.0390         [code_quality]   "Cursor produces really accurate completions"
+2     0.0377         [code_quality]   "code quality from Cursor is hit or miss"
+3     0.0310         [cost_value]     "Cursor is expensive but worth it for quality output"
+```
+
+The two on-topic results move to the top. The pricing post remains visible but correctly demoted.
+
+#### Why It Matters
+
+Aspect annotations represent a curated, human-verified layer of metadata — each post has been labelled with the specific dimensions it addresses (`productivity`, `code_quality`, `cost_value`, `trust_reliability`, etc.). Ignoring this signal at ranking time discards valuable structured information. Aspect boosting bridges the gap between the user's conceptual intent (expressed as an aspect-bearing query) and the retrieved document set.
+
+#### Detection and Boosting Code
+
+**Aspect detection** ([api/search_engine.py](api/search_engine.py), lines 13–37 and 532–543):
+
+```python
+_ASPECT_KEYWORDS = {
+    "code_quality":      ["code quality", "quality", "correctness", "accurate",
+                          "accuracy", "hallucination", "wrong code", "buggy code"],
+    "productivity":      ["productivity", "productive", "efficiency", "workflow"],
+    "trust_reliability": ["trust", "reliable", "reliability", "stable", "consistent"],
+    "cost_value":        ["cost", "price", "expensive", "cheap", "value", "billing"],
+    # … 7 more aspects …
+}
+
+def _detect_aspects(self, query: str) -> List[str]:
+    q_lower = query.lower()
+    return [aspect for aspect, kws in _ASPECT_KEYWORDS.items()
+            if any(kw in q_lower for kw in kws)]
+```
+
+**Aspect boosting** ([api/rrf_fusion.py](api/rrf_fusion.py), `apply_aspect_boosting`, lines 143–188):
+
+```python
+def apply_aspect_boosting(self, results, detected_aspects, boost_multiplier=1.3):
+    detected = set(detected_aspects)
+    boosted = []
+    for doc_id, score, metadata in results:
+        # Aspects stored as "aspect_name:polarity" strings; extract the name part
+        doc_aspects = {a.split(':')[0].strip().lower()
+                       for a in metadata.get('aspects', [])}
+        new_score = score * boost_multiplier if doc_aspects & detected else score
+        boosted.append((doc_id, new_score, metadata))
+    return sorted(boosted, key=lambda x: x[1], reverse=True)
+```
+
+**Configuration** ([config/config.yaml](config/config.yaml)):
+
+```yaml
+aspect_boost:
+  enabled: true
+  boost_multiplier: 1.3   # 30% score increase for aspect-matching documents
+```
+
+---
+
+#### 3.2.2 The Problem: Recency Blindness in Near-Tie Situations
+
+When two documents have nearly identical RRF scores — differing by less than 0.005 — their relative ranking is effectively arbitrary. A stale post from two years ago can outrank a recent post discussing the same topic simply because of floating-point ordering. For opinion search on fast-moving AI tools, where community perception can shift dramatically within months, recency is a meaningful signal in these ambiguous rank-adjacent cases.
+
+#### Before Time-Decay
+
+Two posts with near-identical RRF scores. The older post ranks higher by numerical accident:
+
+```
+Rank  RRF Score  Date        Snippet
+1     0.0310     2022-01-15  "Copilot is great for tab completion"
+2     0.0308     2024-11-20  "Copilot is great for tab completion now"
+```
+
+Score difference: 0.0002 — well within the near-tie threshold of 0.005. The rank order carries no meaningful information.
+
+#### After Time-Decay (λ = 0.001 per day)
+
+Time-decay is applied only to the near-tie pair. The older post is penalised exponentially:
+
+- doc_OLD: 1000 days old → decay = exp(−0.001 × 1000) = **0.368** → score = 0.0310 × 0.368 = **0.0114**
+- doc_NEW: 10 days old → decay = exp(−0.001 × 10) = **0.990** → score = 0.0308 × 0.990 = **0.0305**
+
+```
+Rank  Decayed Score  Date        Snippet
+1     0.0305         2024-11-20  "Copilot is great for tab completion now"
+2     0.0114         2022-01-15  "Copilot is great for tab completion"
+```
+
+The recent post correctly leads.
+
+#### Why Only on Near-Ties?
+
+Applying time-decay unconditionally would penalise clearly more-relevant older posts — a seminal, highly-upvoted analysis from 2022 should not be buried behind a low-quality recent post just because it is old. The `score_similarity_threshold` guard ensures decay functions purely as a tiebreaker between ambiguous rank-adjacent pairs, preserving the primary relevance ordering in all other cases.
+
+The decay rate `λ = 0.001` is calibrated so that a post must be approximately 693 days old (≈ 1.9 years) before its score is halved — slow enough to keep historically significant posts visible, fast enough to meaningfully break same-week ties in favour of the more current post.
+
+#### Implementation ([api/rrf_fusion.py](api/rrf_fusion.py), `apply_time_decay`, lines 190–251)
+
+```python
+# Step 1: Identify near-tie pairs
+scores = [score for _, score, _ in results]
+near_tie = [False] * len(scores)
+for i in range(len(scores)):
+    if i > 0 and abs(scores[i] - scores[i-1]) < score_similarity_threshold:
+        near_tie[i] = near_tie[i-1] = True
+
+# Step 2: Apply exponential decay only to near-tie documents
+decayed = []
+now = datetime.now(timezone.utc)
+for idx, (doc_id, score, meta) in enumerate(results):
+    if near_tie[idx]:
+        date_str = meta.get('date', '')
+        try:
+            doc_date = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            days_old = max((now - doc_date).days, 0)
+            score = score * exp(-lambda_ * days_old)
+        except Exception:
+            pass   # no valid date → no decay, score unchanged
+    decayed.append((doc_id, score, meta))
+
+return sorted(decayed, key=lambda x: x[1], reverse=True)
+```
+
+**Configuration** ([config/config.yaml](config/config.yaml)):
+
+```yaml
+time_decay:
+  enabled: true
+  lambda: 0.001                   # decay rate per day; ~50% penalty after ~693 days
+  score_similarity_threshold: 0.005  # only activate when adjacent scores differ by less than this
+```
+
+---
+
+### 3.3 Trend and Dashboard Analysis
+
+#### The Problem: Static Aggregates Hide Evolving Narratives
+
+A single search result list answers *"what does the community think?"* but not *"how has opinion changed over time?"* Aggregate sentiment statistics (e.g., *"55% positive overall"*) are even more misleading — they collapse the entire history of a discussion into a single number. A tool that was beloved six months ago but is rapidly losing community favour will look fine in the aggregate right up until the reversal is unmistakable.
+
+#### Before the Dashboard (Static Search Only)
+
+A product manager queries `"cursor productivity"` and sees 20 result cards. The top results look positive — enthusiastic posts from early adopters who love the tool. Conclusion: *"Cursor sentiment looks good."*
+
+What the aggregate hides: the most recent 2 months of posts (triggered by a pricing change) are 80% negative. The positive posts in the result list are simply older and more numerous, so they dominate the ranking. There is no way to see this trajectory from a result list alone.
+
+#### After the Dashboard (Polarity Mode)
+
+The same query rendered as a monthly trend chart immediately reveals the inversion:
+
+```
+Month     Positive  Negative  Mixed
+2024-01   12        2         1     ← enthusiastic early adoption
+2024-02   14        3         2
+2024-03   10        4         2
+2024-04   5         14        4     ← pricing change announced
+2024-05   3         18        3     ← community reaction peaks
+```
+
+The decline in positive posts and simultaneous surge in negative posts is visible at a glance. The product manager now asks a much better question: *"What happened in April?"*
+
+#### How It Works — End to End
+
+**Step 1 — User configures the trend query** in the Dashboard panel:
+- Tool filter (e.g., `cursor`), keyword (e.g., `"productivity"`), aspect filter, date range, granularity (`day` / `week` / `month`)
+
+**Step 2 — Frontend sends the request**:
+```
+GET /api/trend?q=productivity&tools=cursor&granularity=month
+```
+
+**Step 3 — Backend BM25 pre-check** ([api/routes.py](api/routes.py), line 162):
+Before computing any vector embedding, a cheap BM25 query verifies that at least one document matches. If zero results are found, the endpoint returns immediately — avoiding the cost of embedding the query and running KNN search for a query with no matching documents.
+
+**Step 4 — Full retrieval with no pagination**:
+The selected search mode (keyword or hybrid) is executed with `page_size=None`, retrieving every matching document. Pagination is deliberately disabled here because time-series aggregation requires the complete result set — a sampled subset would produce misleading bucket counts.
+
+**Step 5 — Temporal bucketing** ([api/routes.py](api/routes.py), lines 194–215):
+
+```python
+def get_bucket_key(date_str, granularity):
+    dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+    if granularity == 'month':
+        return dt.strftime('%Y-%m')
+    elif granularity == 'week':
+        week_start = dt - timedelta(days=dt.weekday())   # ISO Monday
+        return week_start.strftime('%Y-%m-%d')
+    else:
+        return dt.strftime('%Y-%m-%d')   # day
+
+buckets = {}
+for doc in docs:
+    key = get_bucket_key(doc.get('date', ''), granularity)
+    if key not in buckets:
+        buckets[key] = {'date': key, 'positive': 0, 'negative': 0,
+                        'mixed': 0, 'not_applicable': 0, 'count': 0}
+    sentiment = doc.get('sentiment', 'not_applicable')
+    buckets[key][sentiment] += 1
+    buckets[key]['count'] += 1
+```
+
+**Step 6 — Sorted timeline returned** as a JSON array ordered chronologically.
+
+**Step 7 — Frontend renders the chart** ([frontend/js/dashboard.js](frontend/js/dashboard.js), `renderChart`, lines 83–135):
+
+```javascript
+// Polarity mode: three concurrent sentiment line series
+if (this.currentMode === 'polarity') {
+    datasets = [
+        { label: 'Positive', data: timeline.map(b => b.positive),
+          borderColor: '#4caf50', tension: 0.3, fill: false },
+        { label: 'Negative', data: timeline.map(b => b.negative),
+          borderColor: '#f44336', tension: 0.3, fill: false },
+        { label: 'Mixed',    data: timeline.map(b => b.mixed),
+          borderColor: '#ff9800', tension: 0.3, fill: false },
+    ];
+} else {
+    // Popularity mode: single filled area chart of total post volume
+    datasets = [{
+        label: 'Post Volume',
+        data: timeline.map(b => b.count),
+        borderColor: '#667eea',
+        backgroundColor: 'rgba(102,126,234,0.1)',
+        fill: true, tension: 0.3,
+    }];
+}
+```
+
+#### Two Visualization Modes
+
+| Mode | What It Plots | What It Answers |
+|---|---|---|
+| **Polarity** | Three simultaneous line series: positive / negative / mixed post count per time bucket | How is sentiment evolving? Is the community turning more positive or more negative? When did a sentiment shift begin? |
+| **Popularity** | Single filled area chart: total post count per time bucket | When did discussion spike? Was it a product release, a viral comparison, a controversy, or a pricing change? |
+
+The intended workflow is to use both modes together: start in **Popularity** to locate a discussion spike on the timeline, then switch to **Polarity** with the same date window to determine whether the spike was driven by enthusiasm or frustration.
+
+#### Why Temporal Analysis Is Essential
+
+Community opinion about AI tools is not static. A sentiment snapshot is always a lagging indicator — it reflects the accumulated history, not the present trajectory. Trend analysis makes the *direction* of change visible, not just the current position. Without it, a tool in rapid decline looks indistinguishable from a stable, well-regarded tool right up until the aggregate numbers finally invert. The Dashboard surfaces this trajectory proactively, enabling users to ask better, more targeted questions about specific events and turning points in a tool's community reception.
