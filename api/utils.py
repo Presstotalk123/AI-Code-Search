@@ -130,7 +130,7 @@ def suggest_spell_correction(query: str):
                 corrected_tokens.append(token)
                 continue
             correction = spell.correction(token)
-            if correction and correction != token.lower():
+            if correction and correction.lower() != token.lower():
                 corrected_tokens.append(correction)
                 changed = True
             else:
