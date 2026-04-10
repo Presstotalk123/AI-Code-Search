@@ -157,15 +157,27 @@ def _should_flip_neutral_with_context(text: str, rule_score: float, confidence: 
 
 _classifier = None
 _using_zsc  = False
+_device_preference_cached = None
 
 
-def _get_classifier():
-    global _classifier, _using_zsc
-    if _classifier is not None:
+def _get_classifier(device_preference: str = "auto"):
+    global _classifier, _using_zsc, _device_preference_cached
+    if _classifier is not None and _device_preference_cached == device_preference:
         return _classifier, _using_zsc
 
     try:
+        import torch
         from transformers import pipeline as hf_pipeline
+
+        # Determine device
+        if device_preference == "cuda" and torch.cuda.is_available():
+            device = 0
+        elif device_preference == "cpu":
+            device = -1
+        elif torch.cuda.is_available():
+            device = 0
+        else:
+            device = -1
 
         try:
             _classifier = hf_pipeline(
@@ -173,10 +185,10 @@ def _get_classifier():
                 model=SUBJECTIVITY_MODEL,
                 truncation=True,
                 max_length=MAX_TOKEN_LENGTH,
-                device=-1,  # CPU; change to 0 for GPU
+                device=device,
             )
             _using_zsc = False
-            logger.info("Loaded primary subjectivity model: %s", SUBJECTIVITY_MODEL)
+            logger.info("Loaded primary subjectivity model: %s (device=%s)", SUBJECTIVITY_MODEL, "cuda" if device == 0 else "cpu")
         except Exception as e:
             logger.warning(
                 "Primary model failed (%s), trying ZSC fallback: %s", e, ZSC_FALLBACK_MODEL
@@ -184,11 +196,12 @@ def _get_classifier():
             _classifier = hf_pipeline(
                 "zero-shot-classification",
                 model=ZSC_FALLBACK_MODEL,
-                device=-1,
+                device=device,
             )
             _using_zsc = True
-            logger.info("Loaded fallback ZSC model: %s", ZSC_FALLBACK_MODEL)
+            logger.info("Loaded fallback ZSC model: %s (device=%s)", ZSC_FALLBACK_MODEL, "cuda" if device == 0 else "cpu")
 
+        _device_preference_cached = device_preference
     except ImportError:
         logger.error("transformers not installed. Run: pip install transformers torch")
         raise
@@ -196,13 +209,13 @@ def _get_classifier():
     return _classifier, _using_zsc
 
 
-def _transformer_predict(texts: list[str]) -> list[tuple[str, float]]:
+def _transformer_predict(texts: list[str], device_preference: str = "auto") -> list[tuple[str, float]]:
     """
     Run transformer on a batch of texts.
     Returns list of (label, confidence) tuples.
     label is "opinionated" or "neutral".
     """
-    classifier, using_zsc = _get_classifier()
+    classifier, using_zsc = _get_classifier(device_preference=device_preference)
     results = []
 
     def _rebalance_label(label: str, score: float) -> tuple[str, float]:
@@ -261,6 +274,7 @@ def _transformer_predict(texts: list[str]) -> list[tuple[str, float]]:
 def run(
     records: list[dict],
     scores_buffer: list[dict] | None = None,
+    device_preference: str = "auto",
 ) -> list[dict]:
     """
     Hybrid subjectivity detection.
@@ -270,6 +284,7 @@ def run(
       - label_source
       - label_flipped
       - model_subjectivity_score
+    device_preference: "auto", "cpu", or "cuda"
     """
     if scores_buffer is None:
         scores_buffer = []
@@ -352,7 +367,7 @@ def run(
         doc_ids  = [t[1]     for t in transformer_needed]
         texts    = [records[i].get("clean_text", "") for i in indices]
 
-        predictions = _transformer_predict(texts)
+        predictions = _transformer_predict(texts, device_preference=device_preference)
 
         for (idx, doc_id, rule_score), (label, confidence) in zip(transformer_needed, predictions):
             text = records[idx].get("clean_text", "") or ""

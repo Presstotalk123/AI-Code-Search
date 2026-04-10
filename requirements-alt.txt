@@ -12,6 +12,7 @@ chromadb>=0.5.0  # Newer version with NumPy 2.0 support
 # Embeddings
 sentence-transformers>=2.3.1
 torch>=2.0.0
+transformers>=4.37.0
 
 # Data Processing
 pandas>=2.1.0
@@ -21,6 +22,7 @@ numpy>=1.24.0
 pyyaml>=6.0.0
 python-dateutil>=2.8.0
 requests>=2.31.0
+psutil>=5.9.0
 
 # Testing
 pytest>=7.4.0
