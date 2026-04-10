@@ -207,6 +207,7 @@ class SearchEngine:
             Dict with: results, total_count, page, page_size, facets, query_time_ms
         """
         start_time = time.time()
+        query_vector = None  # set below for semantic/hybrid; computed on demand for keyword + MMR
 
         # Execute searches based on mode
         if mode == 'keyword':
@@ -216,8 +217,9 @@ class SearchEngine:
 
         elif mode == 'semantic':
             # Solr KNN - score is cosine similarity (0-1), no distance inversion needed
-            vector_results = self.search_solr_vector(
-                query, n_results=self.config['search']['vector_n_results']
+            query_vector = self._embed_query(query)
+            vector_results = self._search_vector_by_embedding(
+                query_vector, n_results=self.config['search']['vector_n_results']
             )
             final_results = [(doc['doc_id'], doc.get('score', 0.0), doc) for doc in vector_results]
 
@@ -279,6 +281,18 @@ class SearchEngine:
 
         # Apply filters
         filtered_results = self._apply_filters(final_results, filters)
+
+        # Apply MMR diversity reranking
+        mmr_cfg = self.config['search'].get('mmr', {})
+        if mmr_cfg.get('enabled', False):
+            if query_vector is None:
+                query_vector = self._embed_query(query)  # keyword mode: compute on demand
+            filtered_results = self.rrf.apply_mmr(
+                filtered_results,
+                query_vector=query_vector,
+                lambda_=mmr_cfg.get('lambda', 0.5),
+                top_n=mmr_cfg.get('candidate_pool', 50),
+            )
 
         # Compute facets
         facets = self._compute_facets(filtered_results)

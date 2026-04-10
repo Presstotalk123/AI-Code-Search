@@ -1,6 +1,6 @@
 """Reciprocal Rank Fusion (RRF) algorithm for hybrid search"""
 import logging
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -249,6 +249,88 @@ class RRFFusion:
             f"to {sum(near_tie)} near-tie documents"
         )
         return decayed
+
+    def apply_mmr(
+        self,
+        results: List[Tuple[str, float, Dict]],
+        query_vector: Optional[List[float]] = None,
+        lambda_: float = 0.5,
+        top_n: int = 50,
+    ) -> List[Tuple[str, float, Dict]]:
+        """
+        Maximal Marginal Relevance reordering for result diversity.
+
+        Iteratively selects results that maximise:
+            λ * sim(doc, query) − (1−λ) * max(sim(doc, already_selected))
+
+        Args:
+            results:      Sorted (doc_id, score, metadata) list — highest relevance first.
+            query_vector: L2-normalised query embedding (384 floats). If None, falls back
+                          to normalised RRF scores as the relevance signal.
+            lambda_:      Trade-off weight. 1.0 = pure relevance, 0.0 = pure diversity.
+            top_n:        Only run MMR on the top-N candidates (rest appended unchanged).
+
+        Returns:
+            MMR-reordered results (diverse ordering within top_n, then remainder).
+        """
+        import numpy as np
+
+        if not results or lambda_ >= 1.0:
+            return results
+
+        # Split into MMR candidate pool and the tail (appended unchanged)
+        pool = results[:top_n]
+        tail = results[top_n:]
+        n = len(pool)
+
+        # --- Build relevance scores ---
+        rrf_scores = np.array([s for _, s, _ in pool], dtype=np.float32)
+        max_score = rrf_scores.max()
+        rel_scores = rrf_scores / max_score if max_score > 0 else rrf_scores
+
+        if query_vector is not None:
+            q = np.array(query_vector, dtype=np.float32)
+            q_sims = np.zeros(n, dtype=np.float32)
+            for i, (_, _, meta) in enumerate(pool):
+                vec = meta.get('vector')
+                if vec:
+                    q_sims[i] = float(np.dot(q, np.array(vec, dtype=np.float32)))
+            lo, hi = q_sims.min(), q_sims.max()
+            rel_scores = (q_sims - lo) / (hi - lo) if hi > lo else q_sims
+
+        # --- Build pairwise inter-document similarity matrix ---
+        # Vectors are L2-normalised → dot product == cosine similarity
+        doc_vecs = []
+        for _, _, meta in pool:
+            vec = meta.get('vector')
+            if vec:
+                doc_vecs.append(np.array(vec, dtype=np.float32))
+            else:
+                doc_vecs.append(np.zeros(384, dtype=np.float32))
+
+        V = np.stack(doc_vecs)   # shape (n, 384)
+        sim_matrix = V @ V.T     # shape (n, n) — cosine similarities
+
+        # --- Greedy MMR selection ---
+        selected = []
+        remaining = list(range(n))
+
+        while remaining:
+            if not selected:
+                best = max(remaining, key=lambda i: rel_scores[i])
+            else:
+                best, best_mmr = None, float('-inf')
+                for i in remaining:
+                    max_sim = max(float(sim_matrix[i, j]) for j in selected)
+                    mmr = float(lambda_ * rel_scores[i] - (1 - lambda_) * max_sim)
+                    if mmr > best_mmr:
+                        best_mmr, best = mmr, i
+            selected.append(best)
+            remaining.remove(best)
+
+        reordered = [pool[i] for i in selected]
+        logger.debug(f"MMR applied (λ={lambda_}, pool={n}): reordered {n} candidates")
+        return reordered + tail
 
     def explain_score(self, doc_id: str, solr_rank: int = None, vector_rank: int = None) -> str:
         """

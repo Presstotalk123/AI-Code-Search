@@ -48,6 +48,12 @@ search:
     lambda: 0.001          # decay rate per day; 0.001 ≈ ~50% penalty after ~693 days
     score_similarity_threshold: 0.005  # only apply when adjacent scores differ by less than this
 
+  # MMR diversity reranking — reduces near-duplicate results
+  mmr:
+    enabled: true
+    lambda: 0.8          # 0.0 = max diversity, 1.0 = pure relevance (disabled)
+    candidate_pool: 50   # run MMR on top-N filtered results; rest appended unchanged
+
 # Data Configuration
 data:
   source_path: "./data/eval_final_labelled.jsonl"
